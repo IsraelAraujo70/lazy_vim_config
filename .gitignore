@@ -1,8 +1,38 @@
+# LazyVim
+.lazy/
+.tests/
+.repro/
+
+# Temporary files
 tt.*
-.tests
-doc/tags
-debug
-.repro
 foo.*
 *.log
-data
+*.tmp
+
+# Debug files
+debug/
+
+# Documentation tags
+doc/tags
+
+# Data files
+data/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor files
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
