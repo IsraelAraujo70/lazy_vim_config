@@ -312,26 +312,15 @@ return {
     end,
   },
 
-  -- AI-powered completion (Codeium)
+  -- AI-powered completion (Codeium) - volta para versão VimScript que funciona
   {
-    "Exafunction/codeium.nvim",
-    dependencies = {
-      "nvim-lua/plenary.nvim",
-      "hrsh7th/nvim-cmp",
-    },
+    "Exafunction/codeium.vim",
     event = "BufEnter",
     config = function()
-      require("codeium").setup({
-        enable_chat = true,  -- Enable Codeium Chat
-        config_path = vim.fn.stdpath("config") .. "/codeium_config.json",
-        bin_path = vim.fn.stdpath("cache") .. "/codeium/bin",
-        api = {
-          host = "server.codeium.com",
-          port = "443",
-        },
-      })
+      -- Disable default <Tab> mapping to avoid conflicts
+      vim.g.codeium_disable_bindings = 1
       
-      -- Keymaps
+      -- Custom keymaps
       vim.keymap.set('i', '<C-g>', function()
         return vim.fn['codeium#Accept']()
       end, { expr = true, silent = true, desc = "Codeium: Accept" })
@@ -348,11 +337,15 @@ return {
         return vim.fn['codeium#Clear']()
       end, { expr = true, silent = true, desc = "Codeium: Clear" })
       
+      -- Alternative accept with Alt+Enter
+      vim.keymap.set('i', '<M-CR>', function()
+        return vim.fn['codeium#Accept']()
+      end, { expr = true, silent = true, desc = "Codeium: Accept (Alt+Enter)" })
+      
       -- Management commands
       vim.keymap.set('n', '<leader>cs', '<cmd>Codeium Auth<cr>', { desc = "Codeium: Authenticate" })
       vim.keymap.set('n', '<leader>cd', '<cmd>Codeium Disable<cr>', { desc = "Codeium: Disable" })
       vim.keymap.set('n', '<leader>ce', '<cmd>Codeium Enable<cr>', { desc = "Codeium: Enable" })
-      vim.keymap.set('n', '<leader>cc', '<cmd>Codeium Chat<cr>', { desc = "Codeium: Open Chat" })
     end,
   },
 

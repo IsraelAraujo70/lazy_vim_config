@@ -6,7 +6,7 @@ return {
   { import = "lazyvim.plugins.extras.lang.json" },
   
   -- Tailwind CSS support
-  { import = "lazyvim.plugins.extras.lang.tailwindcss" },
+  { import = "lazyvim.plugins.extras.lsp.tailwindcss" },
   
   -- PHP Language Server configuration
   {
@@ -14,10 +14,10 @@ return {
     opts = {
       servers = {
         phpactor = {
-          enabled = lsp == "phpactor",
+          enabled = true,
         },
         intelephense = {
-          enabled = lsp == "intelephense",
+          enabled = true,
           init_options = {
             globalStoragePath = os.getenv("HOME") .. "/.local/share/intelephense",
           },
@@ -56,12 +56,6 @@ return {
         emmet_ls = {
           filetypes = { "html", "css", "javascript", "typescript", "javascriptreact", "typescriptreact", "php" },
         },
-      },
-      setup = {
-        intelephense = function()
-          -- Set PHP language server preference
-          vim.g.lazyvim_php_lsp = "intelephense"
-        end,
       },
     },
   },

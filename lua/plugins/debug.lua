@@ -187,7 +187,6 @@ return {
       "nvim-treesitter/nvim-treesitter",
       -- Adapters
       "nvim-neotest/neotest-jest",
-      "nvim-neotest/neotest-vitest",
       "olimorris/neotest-phpunit",
     },
     keys = {
@@ -211,8 +210,7 @@ return {
               return vim.fn.getcwd()
             end,
           }),
-          require("neotest-vitest"),
-          require("neotest-phpunit")({
+              require("neotest-phpunit")({
             phpunit_cmd = function()
               return "vendor/bin/phpunit"
             end,
@@ -339,42 +337,17 @@ return {
     end,
   },
 
-  -- REST client for API testing
+  -- Simple HTTP client alternative
   {
-    "rest-nvim/rest.nvim",
+    "mistweaverco/kulala.nvim",
     ft = "http",
-    dependencies = { "nvim-lua/plenary.nvim" },
     keys = {
-      { "<leader>rr", "<cmd>Rest run<cr>", desc = "Run REST request" },
-      { "<leader>rl", "<cmd>Rest run last<cr>", desc = "Run last REST request" },
+      { "<leader>rr", "<cmd>lua require('kulala').run()<cr>", desc = "Run HTTP request" },
+      { "<leader>ra", "<cmd>lua require('kulala').run_all()<cr>", desc = "Run all HTTP requests" },
+      { "<leader>ri", "<cmd>lua require('kulala').inspect()<cr>", desc = "Inspect HTTP request" },
     },
     config = function()
-      require("rest-nvim").setup({
-        result_split_horizontal = false,
-        result_split_in_place = false,
-        skip_ssl_verification = false,
-        encode_url = true,
-        highlight = {
-          enabled = true,
-          timeout = 150,
-        },
-        result = {
-          show_url = true,
-          show_curl_command = false,
-          show_http_info = true,
-          show_headers = true,
-          formatters = {
-            json = "jq",
-            html = function(body)
-              return vim.fn.system({"tidy", "-i", "-q", "-"}, body)
-            end
-          },
-        },
-        jump_to_request = false,
-        env_file = '.env',
-        custom_dynamic_variables = {},
-        yank_dry_run = true,
-      })
+      require("kulala").setup()
     end,
   },
 
