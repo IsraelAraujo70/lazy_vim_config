@@ -312,16 +312,48 @@ return {
     end,
   },
 
-  -- AI-powered completion
+  -- AI-powered completion (Codeium)
   {
-    "Exafunction/codeium.vim",
+    "Exafunction/codeium.nvim",
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      "hrsh7th/nvim-cmp",
+    },
     event = "BufEnter",
     config = function()
-      vim.keymap.set('i', '<C-g>', function () return vim.fn['codeium#Accept']() end, { expr = true, silent = true })
-      vim.keymap.set('i', '<C-;>', function() return vim.fn['codeium#CycleCompletions'](1) end, { expr = true, silent = true })
-      vim.keymap.set('i', '<C-,>', function() return vim.fn['codeium#CycleCompletions'](-1) end, { expr = true, silent = true })
-      vim.keymap.set('i', '<C-x>', function() return vim.fn['codeium#Clear']() end, { expr = true, silent = true })
-    end
+      require("codeium").setup({
+        enable_chat = true,  -- Enable Codeium Chat
+        config_path = vim.fn.stdpath("config") .. "/codeium_config.json",
+        bin_path = vim.fn.stdpath("cache") .. "/codeium/bin",
+        api = {
+          host = "server.codeium.com",
+          port = "443",
+        },
+      })
+      
+      -- Keymaps
+      vim.keymap.set('i', '<C-g>', function()
+        return vim.fn['codeium#Accept']()
+      end, { expr = true, silent = true, desc = "Codeium: Accept" })
+      
+      vim.keymap.set('i', '<C-;>', function()
+        return vim.fn['codeium#CycleCompletions'](1)
+      end, { expr = true, silent = true, desc = "Codeium: Next" })
+      
+      vim.keymap.set('i', '<C-,>', function()
+        return vim.fn['codeium#CycleCompletions'](-1)
+      end, { expr = true, silent = true, desc = "Codeium: Previous" })
+      
+      vim.keymap.set('i', '<C-x>', function()
+        return vim.fn['codeium#Clear']()
+      end, { expr = true, silent = true, desc = "Codeium: Clear" })
+      
+      -- Management commands
+      vim.keymap.set('n', '<leader>cs', '<cmd>Codeium Auth<cr>', { desc = "Codeium: Authenticate" })
+      vim.keymap.set('n', '<leader>cd', '<cmd>Codeium Disable<cr>', { desc = "Codeium: Disable" })
+      vim.keymap.set('n', '<leader>ce', '<cmd>Codeium Enable<cr>', { desc = "Codeium: Enable" })
+      vim.keymap.set('n', '<leader>cc', '<cmd>Codeium Chat<cr>', { desc = "Codeium: Open Chat" })
+    end,
   },
 
   -- Auto pairs
