@@ -320,27 +320,37 @@ return {
       -- Disable default <Tab> mapping to avoid conflicts
       vim.g.codeium_disable_bindings = 1
       
-      -- Custom keymaps
+      -- 🤖 CODEIUM - IGUAL VSCODE COPILOT
+      
+      -- Ctrl+G = Aceitar sugestão (como você pediu!)
       vim.keymap.set('i', '<C-g>', function()
         return vim.fn['codeium#Accept']()
-      end, { expr = true, silent = true, desc = "Codeium: Accept" })
+      end, { expr = true, silent = true, desc = "Accept Codeium" })
       
-      vim.keymap.set('i', '<C-;>', function()
+      -- Tab também aceita (padrão universal)
+      vim.keymap.set('i', '<Tab>', function()
+        if vim.fn['codeium#GetStatusString']() ~= '' then
+          return vim.fn['codeium#Accept']()
+        else
+          return '<Tab>'
+        end
+      end, { expr = true, silent = true, desc = "Accept Codeium or Tab" })
+      
+      -- Ctrl+] = Próxima sugestão (igual VSCode)
+      vim.keymap.set('i', '<C-]>', function()
         return vim.fn['codeium#CycleCompletions'](1)
-      end, { expr = true, silent = true, desc = "Codeium: Next" })
+      end, { expr = true, silent = true, desc = "Next Codeium suggestion" })
       
-      vim.keymap.set('i', '<C-,>', function()
+      -- Ctrl+[ = Sugestão anterior (igual VSCode)
+      vim.keymap.set('i', '<C-[>', function()
         return vim.fn['codeium#CycleCompletions'](-1)
-      end, { expr = true, silent = true, desc = "Codeium: Previous" })
+      end, { expr = true, silent = true, desc = "Previous Codeium suggestion" })
       
-      vim.keymap.set('i', '<C-x>', function()
-        return vim.fn['codeium#Clear']()
-      end, { expr = true, silent = true, desc = "Codeium: Clear" })
-      
-      -- Alternative accept with Alt+Enter
-      vim.keymap.set('i', '<M-CR>', function()
-        return vim.fn['codeium#Accept']()
-      end, { expr = true, silent = true, desc = "Codeium: Accept (Alt+Enter)" })
+      -- Escape = Rejeitar sugestão (igual VSCode)
+      vim.keymap.set('i', '<Esc>', function()
+        vim.fn['codeium#Clear']()
+        return '<Esc>'
+      end, { expr = true, silent = true, desc = "Reject Codeium and exit" })
       
       -- Management commands
       vim.keymap.set('n', '<leader>cs', '<cmd>Codeium Auth<cr>', { desc = "Codeium: Authenticate" })
@@ -376,13 +386,15 @@ return {
       local npairs = require("nvim-autopairs")
       npairs.setup(opts)
       
-      -- Integration with nvim-cmp
-      local cmp_autopairs = require('nvim-autopairs.completion.cmp')
-      local cmp = require('cmp')
-      cmp.event:on(
-        'confirm_done',
-        cmp_autopairs.on_confirm_done()
-      )
+      -- Integration with nvim-cmp (only if cmp is available)
+      local ok_cmp, cmp = pcall(require, 'cmp')
+      if ok_cmp then
+        local cmp_autopairs = require('nvim-autopairs.completion.cmp')
+        cmp.event:on(
+          'confirm_done',
+          cmp_autopairs.on_confirm_done()
+        )
+      end
     end,
   },
 

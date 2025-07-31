@@ -1,13 +1,13 @@
 return {
   -- TypeScript/JavaScript support
   { import = "lazyvim.plugins.extras.lang.typescript" },
-  
+
   -- JSON support
   { import = "lazyvim.plugins.extras.lang.json" },
-  
-  -- Tailwind CSS support
-  { import = "lazyvim.plugins.extras.lsp.tailwindcss" },
-  
+
+  -- Tailwind CSS support (removido temporariamente - extras mudaram)
+  -- { import = "lazyvim.plugins.extras.lsp.tailwindcss" },
+
   -- PHP Language Server configuration
   {
     "neovim/nvim-lspconfig",
@@ -87,7 +87,7 @@ return {
     event = "VeryLazy",
     opts = {},
   },
-  
+
   {
     "echasnovski/mini.surround",
     keys = function(_, keys)
@@ -110,7 +110,7 @@ return {
     opts = {
       mappings = {
         add = "gsa",
-        delete = "gsd", 
+        delete = "gsd",
         find = "gsf",
         find_left = "gsF",
         highlight = "gsh",
@@ -147,7 +147,43 @@ return {
     "StanAngeloff/php.vim",
     ft = "php",
     config = function()
-      vim.g.php_syntax_extensions_enabled = { "bcmath", "bz2", "core", "curl", "date", "dom", "ereg", "gd", "gettext", "hash", "iconv", "json", "libxml", "mbstring", "mcrypt", "mhash", "mysql", "mysqli", "openssl", "pcre", "pdo", "phar", "reflection", "session", "simplexml", "soap", "sockets", "spl", "tokenizer", "wddx", "xml", "xmlreader", "xmlwriter", "zip", "zlib" }
+      vim.g.php_syntax_extensions_enabled = {
+        "bcmath",
+        "bz2",
+        "core",
+        "curl",
+        "date",
+        "dom",
+        "ereg",
+        "gd",
+        "gettext",
+        "hash",
+        "iconv",
+        "json",
+        "libxml",
+        "mbstring",
+        "mcrypt",
+        "mhash",
+        "mysql",
+        "mysqli",
+        "openssl",
+        "pcre",
+        "pdo",
+        "phar",
+        "reflection",
+        "session",
+        "simplexml",
+        "soap",
+        "sockets",
+        "spl",
+        "tokenizer",
+        "wddx",
+        "xml",
+        "xmlreader",
+        "xmlwriter",
+        "zip",
+        "zlib",
+      }
       vim.g.php_html_load = 0
       vim.g.php_html_in_heredoc = 0
       vim.g.php_html_in_nowdoc = 0
@@ -162,7 +198,6 @@ return {
     "jwalton512/vim-blade",
     ft = "blade",
   },
-
   -- Emmet for HTML/CSS
   {
     "mattn/emmet-vim",
@@ -176,3 +211,4 @@ return {
     end,
   },
 }
+
