@@ -17,7 +17,7 @@ map("n", "<C-w>", "<cmd>bd<cr>", { desc = "❌ Close File" })
 -- NAVIGATION
 map("n", "<C-p>", "<cmd>Telescope find_files<cr>", { desc = "🔍 Quick Open" })
 map("n", "<C-S-p>", "<cmd>Telescope commands<cr>", { desc = "⚡ Command Palette" })
-map("n", "<C-b>", "<cmd>Neotree toggle<cr>", { desc = "🌳 Toggle Explorer" })
+map("n", "<leader>e", "<cmd>Neotree toggle<cr>", { desc = "🌳 Toggle Explorer" })
 map("n", "<C-`>", "<cmd>ToggleTerm<cr>", { desc = "💻 Toggle Terminal" })
 
 -- SEARCH & REPLACE

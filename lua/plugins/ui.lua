@@ -306,4 +306,230 @@ return {
       vim.api.nvim_set_keymap('n', 'g#', [[g#<Cmd>lua require('hlslens').start()<CR>]], kopts)
     end
   },
+
+  -- VS Code like search and replace
+  {
+    "nvim-pack/nvim-spectre",
+    build = false,
+    cmd = "Spectre",
+    opts = { open_cmd = "noswapfile vnew" },
+    keys = {
+      { "<C-h>", function() require("spectre").toggle() end, desc = "Replace in files (Spectre)" },
+    },
+  },
+
+  -- Better buffer line (tabs like VS Code)
+  {
+    "akinsho/bufferline.nvim",
+    opts = {
+      options = {
+        mode = "buffers",
+        themable = true,
+        numbers = "ordinal",
+        close_command = "bdelete! %d",
+        right_mouse_command = "bdelete! %d",
+        left_mouse_command = "buffer %d",
+        middle_mouse_command = nil,
+        indicator = {
+          icon = "▎",
+          style = "icon",
+        },
+        buffer_close_icon = "󰎅",
+        modified_icon = "●",
+        close_icon = "󰎅",
+        left_trunc_marker = "󰞦",
+        right_trunc_marker = "󰞧",
+        max_name_length = 30,
+        max_prefix_length = 30,
+        tab_size = 21,
+        diagnostics = "nvim_lsp",
+        diagnostics_update_in_insert = false,
+        color_icons = true,
+        show_buffer_icons = true,
+        show_buffer_close_icons = true,
+        show_close_icon = true,
+        show_tab_indicators = true,
+        persist_buffer_sort = true,
+        separator_style = "thin",
+        enforce_regular_tabs = true,
+        always_show_bufferline = true,
+        hover = {
+          enabled = true,
+          delay = 200,
+          reveal = {'close'}
+        },
+        sort_by = 'insert_after_current',
+        offsets = {
+          {
+            filetype = "neo-tree",
+            text = "File Explorer",
+            text_align = "left",
+            separator = true,
+          },
+        },
+      },
+    },
+  },
+
+  -- VS Code like file icons
+  {
+    "nvim-tree/nvim-web-devicons",
+    opts = {
+      override = {
+        zsh = {
+          icon = "󰐇",
+          color = "#428850",
+          cterm_color = "65",
+          name = "Zsh"
+        }
+      },
+      color_icons = true,
+      default = true,
+      strict = true,
+      override_by_filename = {
+        [".gitignore"] = {
+          icon = "󰁺",
+          color = "#f1502f",
+          name = "Gitignore"
+        }
+      },
+      override_by_extension = {
+        ["log"] = {
+          icon = "󰕗",
+          color = "#81e043",
+          name = "Log"
+        }
+      }
+    }
+  },
+
+  -- Better terminal integration
+  {
+    "akinsho/toggleterm.nvim",
+    version = "*",
+    opts = {
+      size = 20,
+      open_mapping = [[<C-`>]],
+      hide_numbers = true,
+      shade_terminals = true,
+      shading_factor = 2,
+      start_in_insert = true,
+      insert_mappings = true,
+      persist_size = true,
+      direction = "horizontal",
+      close_on_exit = true,
+      shell = vim.o.shell,
+      float_opts = {
+        border = "curved",
+        winblend = 0,
+        highlights = {
+          border = "Normal",
+          background = "Normal",
+        }
+      }
+    }
+  },
+
+  -- Improved neo-tree (file explorer)
+  {
+    "nvim-neo-tree/neo-tree.nvim",
+    opts = {
+      close_if_last_window = false,
+      popup_border_style = "rounded",
+      enable_git_status = true,
+      enable_diagnostics = true,
+      sort_case_insensitive = false,
+      default_component_configs = {
+        container = {
+          enable_character_fade = true
+        },
+        indent = {
+          indent_size = 2,
+          padding = 1,
+          with_markers = true,
+          indent_marker = "│",
+          last_indent_marker = "└",
+          highlight = "NeoTreeIndentMarker",
+          with_expanders = nil,
+          expander_collapsed = "󰟆",
+          expander_expanded = "󰥘",
+          expander_highlight = "NeoTreeExpander",
+        },
+        icon = {
+          folder_closed = "󰟁",
+          folder_open = "󰟄",
+          folder_empty = "󰟅",
+          default = "*",
+          highlight = "NeoTreeFileIcon"
+        },
+        modified = {
+          symbol = "[+]",
+          highlight = "NeoTreeModified",
+        },
+        name = {
+          trailing_slash = false,
+          use_git_status_colors = true,
+          highlight = "NeoTreeFileName",
+        },
+        git_status = {
+          symbols = {
+            added     = "", -- or "✚", but this is redundant info if you use git_status_colors on the name
+            modified  = "", -- or "", but this is redundant info if you use git_status_colors on the name
+            deleted   = "✖",-- this can only be used in the git_status source
+            renamed   = "󰂫",-- this can only be used in the git_status source
+            untracked = "",
+            ignored   = "",
+            unstaged  = "��",
+            staged    = "��",
+            conflict  = "",
+          }
+        },
+      },
+      filesystem = {
+        filtered_items = {
+          visible = false,
+          hide_dotfiles = true,
+          hide_gitignored = true,
+          hide_hidden = true,
+          hide_by_name = {
+            "node_modules"
+          },
+          hide_by_pattern = {
+            "*.meta",
+            "*/src/*/tsconfig.json",
+          },
+          always_show = {
+            ".gitignored",
+          },
+          never_show = {
+            ".DS_Store",
+            "thumbs.db"
+          },
+          never_show_by_pattern = {
+            ".null-ls_*",
+          },
+        },
+        follow_current_file = {
+          enabled = false,
+          leave_dirs_open = false,
+        },
+        group_empty_dirs = false,
+        hijack_netrw_behavior = "open_default",
+        use_libuv_file_watcher = false,
+        window = {
+          mappings = {
+            ["<bs>"] = "navigate_up",
+            ["."] = "set_root",
+            ["H"] = "toggle_hidden",
+            ["/"] = "fuzzy_finder",
+            ["D"] = "fuzzy_finder_directory",
+            ["f"] = "filter_on_submit",
+            ["<c-x>"] = "clear_filter",
+            ["[g"] = "prev_git_modified",
+            ["]g"] = "next_git_modified",
+          }
+        }
+      }
+    },
+  },
 }
