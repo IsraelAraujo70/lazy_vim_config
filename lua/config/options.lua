@@ -51,3 +51,7 @@ opt.clipboard = "unnamedplus"
 -- Show invisible characters
 opt.list = true
 opt.listchars = { tab = "» ", trail = "·", nbsp = "␣" }
+
+-- LazyVim configuration
+-- Desabilitar verificação de ordem dos imports do LazyVim
+vim.g.lazyvim_check_order = false
