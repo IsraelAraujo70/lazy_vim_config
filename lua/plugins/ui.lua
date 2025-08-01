@@ -44,7 +44,7 @@ return {
         mini = true,
         telescope = {
           enabled = true,
-          style = "nvchad"
+          style = "nvchad",
         },
         which_key = true,
         mason = true,
@@ -109,7 +109,12 @@ return {
             { action = "Telescope oldfiles", desc = " Recent files", icon = " ", key = "r" },
             { action = "Telescope live_grep", desc = " Find text", icon = " ", key = "g" },
             { action = "Telescope projects", desc = " Projects", icon = " ", key = "p" },
-            { action = [[lua require("lazyvim.util").telescope.config_files()()]], desc = " Config", icon = " ", key = "c" },
+            {
+              action = [[lua require("lazyvim.util").telescope.config_files()()]],
+              desc = " Config",
+              icon = " ",
+              key = "c",
+            },
             { action = 'lua require("persistence").load()', desc = " Restore Session", icon = " ", key = "s" },
             { action = "LazyExtras", desc = " Lazy Extras", icon = " ", key = "x" },
             { action = "Lazy", desc = " Lazy", icon = "󰒲 ", key = "l" },
@@ -273,8 +278,8 @@ return {
     "karb94/neoscroll.nvim",
     event = "WinScrolled",
     config = function()
-      require('neoscroll').setup({
-        mappings = {'<C-u>', '<C-d>', '<C-b>', '<C-f>', '<C-y>', '<C-e>', 'zt', 'zz', 'zb'},
+      require("neoscroll").setup({
+        mappings = { "<C-u>", "<C-d>", "<C-b>", "<C-f>", "<C-y>", "<C-e>", "zt", "zz", "zb" },
         hide_cursor = true,
         stop_eof = true,
         respect_scrolloff = false,
@@ -284,27 +289,33 @@ return {
         post_hook = nil,
         performance_mode = false,
       })
-    end
+    end,
   },
 
   -- Better search
   {
     "kevinhwang91/nvim-hlslens",
     config = function()
-      require('hlslens').setup()
-      
-      local kopts = {noremap = true, silent = true}
-      vim.api.nvim_set_keymap('n', 'n',
-          [[<Cmd>execute('normal! ' . v:count1 . 'n')<CR><Cmd>lua require('hlslens').start()<CR>]],
-          kopts)
-      vim.api.nvim_set_keymap('n', 'N',
-          [[<Cmd>execute('normal! ' . v:count1 . 'N')<CR><Cmd>lua require('hlslens').start()<CR>]],
-          kopts)
-      vim.api.nvim_set_keymap('n', '*', [[*<Cmd>lua require('hlslens').start()<CR>]], kopts)
-      vim.api.nvim_set_keymap('n', '#', [[#<Cmd>lua require('hlslens').start()<CR>]], kopts)
-      vim.api.nvim_set_keymap('n', 'g*', [[g*<Cmd>lua require('hlslens').start()<CR>]], kopts)
-      vim.api.nvim_set_keymap('n', 'g#', [[g#<Cmd>lua require('hlslens').start()<CR>]], kopts)
-    end
+      require("hlslens").setup()
+
+      local kopts = { noremap = true, silent = true }
+      vim.api.nvim_set_keymap(
+        "n",
+        "n",
+        [[<Cmd>execute('normal! ' . v:count1 . 'n')<CR><Cmd>lua require('hlslens').start()<CR>]],
+        kopts
+      )
+      vim.api.nvim_set_keymap(
+        "n",
+        "N",
+        [[<Cmd>execute('normal! ' . v:count1 . 'N')<CR><Cmd>lua require('hlslens').start()<CR>]],
+        kopts
+      )
+      vim.api.nvim_set_keymap("n", "*", [[*<Cmd>lua require('hlslens').start()<CR>]], kopts)
+      vim.api.nvim_set_keymap("n", "#", [[#<Cmd>lua require('hlslens').start()<CR>]], kopts)
+      vim.api.nvim_set_keymap("n", "g*", [[g*<Cmd>lua require('hlslens').start()<CR>]], kopts)
+      vim.api.nvim_set_keymap("n", "g#", [[g#<Cmd>lua require('hlslens').start()<CR>]], kopts)
+    end,
   },
 
   -- VS Code like search and replace
@@ -314,7 +325,13 @@ return {
     cmd = "Spectre",
     opts = { open_cmd = "noswapfile vnew" },
     keys = {
-      { "<C-h>", function() require("spectre").toggle() end, desc = "Replace in files (Spectre)" },
+      {
+        "<C-h>",
+        function()
+          require("spectre").toggle()
+        end,
+        desc = "Replace in files (Spectre)",
+      },
     },
   },
 
@@ -356,9 +373,9 @@ return {
         hover = {
           enabled = true,
           delay = 200,
-          reveal = {'close'}
+          reveal = { "close" },
         },
-        sort_by = 'insert_after_current',
+        sort_by = "insert_after_current",
         offsets = {
           {
             filetype = "neo-tree",
@@ -380,8 +397,8 @@ return {
           icon = "󰐇",
           color = "#428850",
           cterm_color = "65",
-          name = "Zsh"
-        }
+          name = "Zsh",
+        },
       },
       color_icons = true,
       default = true,
@@ -390,17 +407,17 @@ return {
         [".gitignore"] = {
           icon = "󰁺",
           color = "#f1502f",
-          name = "Gitignore"
-        }
+          name = "Gitignore",
+        },
       },
       override_by_extension = {
         ["log"] = {
           icon = "󰕗",
           color = "#81e043",
-          name = "Log"
-        }
-      }
-    }
+          name = "Log",
+        },
+      },
+    },
   },
 
   -- Better terminal integration
@@ -425,9 +442,9 @@ return {
         highlights = {
           border = "Normal",
           background = "Normal",
-        }
-      }
-    }
+        },
+      },
+    },
   },
 
   -- Improved neo-tree (file explorer)
@@ -441,7 +458,7 @@ return {
       sort_case_insensitive = false,
       default_component_configs = {
         container = {
-          enable_character_fade = true
+          enable_character_fade = true,
         },
         indent = {
           indent_size = 2,
@@ -460,7 +477,7 @@ return {
           folder_open = "󰟄",
           folder_empty = "󰟅",
           default = "*",
-          highlight = "NeoTreeFileIcon"
+          highlight = "NeoTreeFileIcon",
         },
         modified = {
           symbol = "[+]",
@@ -473,26 +490,26 @@ return {
         },
         git_status = {
           symbols = {
-            added     = "", -- or "✚", but this is redundant info if you use git_status_colors on the name
-            modified  = "", -- or "", but this is redundant info if you use git_status_colors on the name
-            deleted   = "✖",-- this can only be used in the git_status source
-            renamed   = "󰂫",-- this can only be used in the git_status source
+            added = "", -- or "✚", but this is redundant info if you use git_status_colors on the name
+            modified = "", -- or "", but this is redundant info if you use git_status_colors on the name
+            deleted = "✖", -- this can only be used in the git_status source
+            renamed = "󰂫", -- this can only be used in the git_status source
             untracked = "",
-            ignored   = "",
-            unstaged  = "��",
-            staged    = "��",
-            conflict  = "",
-          }
+            ignored = "",
+            unstaged = "��",
+            staged = "��",
+            conflict = "",
+          },
         },
       },
       filesystem = {
         filtered_items = {
           visible = false,
-          hide_dotfiles = true,
-          hide_gitignored = true,
+          hide_dotfiles = false,
+          hide_gitignored = false,
           hide_hidden = true,
           hide_by_name = {
-            "node_modules"
+            "node_modules",
           },
           hide_by_pattern = {
             "*.meta",
@@ -503,7 +520,7 @@ return {
           },
           never_show = {
             ".DS_Store",
-            "thumbs.db"
+            "thumbs.db",
           },
           never_show_by_pattern = {
             ".null-ls_*",
@@ -527,9 +544,10 @@ return {
             ["<c-x>"] = "clear_filter",
             ["[g"] = "prev_git_modified",
             ["]g"] = "next_git_modified",
-          }
-        }
-      }
+          },
+        },
+      },
     },
   },
 }
+
