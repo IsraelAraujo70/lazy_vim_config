@@ -27,7 +27,7 @@ map("n", "<C-f>", "/", { desc = "🔍 Find" })
 map("n", "<C-h>", "<cmd>lua require('spectre').toggle()<cr>", { desc = "🔄 Find & Replace" })
 map("n", "<C-S-f>", "<cmd>Telescope live_grep<cr>", { desc = "🔍 Find in Files" })
 
--- EDIT OPERATIONS
+-- EDIT OPERATIONS - Operações de edição e manipulação de texto
 map("v", "<C-c>", '"+y', { desc = "📋 Copy" })
 map({ "n", "v", "i" }, "<C-v>", '"+p', { desc = "📋 Paste" })
 map("v", "<C-x>", '"+d', { desc = "✂️ Cut" })
@@ -35,22 +35,22 @@ map("n", "<C-z>", "u", { desc = "↩️ Undo" })
 map("n", "<C-S-z>", "<C-r>", { desc = "↪️ Redo" })
 map("n", "<C-a>", "ggVG", { desc = "🎯 Select All" })
 
--- DUPLICATE & DELETE
+-- DUPLICATE & DELETE - Duplicar e deletar linhas e seleções
 map("n", "<C-S-d>", "yyp", { desc = "📄 Duplicate Line" })
 map("v", "<C-S-d>", "y'>p", { desc = "📄 Duplicate Selection" })
 map("n", "<C-S-k>", "dd", { desc = "🗑️ Delete Line" })
 
--- MOVE LINES
+-- MOVE LINES - Mover linhas para cima e para baixo
 map("n", "<A-Up>", "<cmd>m .-2<cr>==", { desc = "⬆️ Move Line Up" })
 map("n", "<A-Down>", "<cmd>m .+1<cr>==", { desc = "⬇️ Move Line Down" })
 map("v", "<A-Up>", ":m '<-2<cr>gv=gv", { desc = "⬆️ Move Lines Up" })
 map("v", "<A-Down>", ":m '>+1<cr>gv=gv", { desc = "⬇️ Move Lines Down" })
 
--- COMMENTS
+-- COMMENTS - Toggle de comentários em linha e bloco
 map("n", "<C-/>", "gcc", { desc = "💬 Toggle Comment", remap = true })
 map("v", "<C-/>", "gc", { desc = "💬 Toggle Comment", remap = true })
 
--- TAB NAVIGATION
+-- TAB NAVIGATION - Navegação entre abas e buffers
 map("n", "<C-Tab>", "<cmd>bnext<cr>", { desc = "➡️ Next Tab" })
 map("n", "<C-S-Tab>", "<cmd>bprevious<cr>", { desc = "⬅️ Previous Tab" })
 map("n", "<C-1>", "<cmd>BufferLineGoToBuffer 1<cr>", { desc = "1️⃣ Go to Tab 1" })
@@ -60,10 +60,10 @@ map("n", "<C-4>", "<cmd>BufferLineGoToBuffer 4<cr>", { desc = "4️⃣ Go to Tab
 map("n", "<C-5>", "<cmd>BufferLineGoToBuffer 5<cr>", { desc = "5️⃣ Go to Tab 5" })
 
 -- ========================================
--- 🛠️ DEVELOPMENT TOOLS
+-- 🛠️ DEVELOPMENT TOOLS - Ferramentas de desenvolvimento
 -- ========================================
 
--- DEBUG
+-- DEBUG - Ferramentas de depuração e breakpoints
 map("n", "<F5>", function()
   require("dap").continue()
 end, { desc = "▶️ Debug: Start/Continue" })
@@ -80,7 +80,7 @@ map("n", "<F12>", function()
   require("dap").step_out()
 end, { desc = "⏫ Step Out" })
 
--- LSP
+-- LSP - Language Server Protocol e funcionalidades
 map("n", "<C-.>", vim.lsp.buf.code_action, { desc = "💡 Code Action" })
 map("v", "<C-.>", vim.lsp.buf.code_action, { desc = "💡 Code Action" })
 map("n", "<F2>", vim.lsp.buf.rename, { desc = "✏️ Rename" })

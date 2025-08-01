@@ -106,14 +106,24 @@ function show_diff_view(diff_data)
   -- Create new diff buffer
   state.diff_buffer = api.nvim_create_buf(false, true)
   
-  -- Split window and show diff
-  vim.cmd("split")
+  -- Open diff in vertical split to the right (like VSCode)
+  vim.cmd("vsplit")
   api.nvim_win_set_buf(0, state.diff_buffer)
+  
+  -- Set window width to be reasonable for diff viewing
+  local width = math.floor(vim.o.columns * 0.4) -- 40% of screen width
+  vim.cmd("vertical resize " .. width)
   
   -- Set buffer options
   api.nvim_buf_set_option(state.diff_buffer, "buftype", "nofile")
   api.nvim_buf_set_option(state.diff_buffer, "swapfile", false)
-  api.nvim_buf_set_option(state.diff_buffer, "filetype", "markdown")
+  api.nvim_buf_set_option(state.diff_buffer, "filetype", "diff")
+  api.nvim_buf_set_option(state.diff_buffer, "wrap", true)
+  
+  -- Set window options for better visibility
+  vim.wo.number = false
+  vim.wo.relativenumber = false
+  vim.wo.signcolumn = "no"
   
   -- Split content into lines properly
   local original_lines = {}
@@ -127,41 +137,128 @@ function show_diff_view(diff_data)
     new_lines = vim.split(diff_data.new_content, "\n")
   end
   
+  local filename = vim.fn.fnamemodify(diff_data.filename or "unknown", ":t")
   local test_lines = {
-    "# Claude Code Diff",
-    "File: " .. (diff_data.filename or "unknown"),
+    "┌─────────────────────────────────────────────┐",
+    "│  🤖 Claude Code Applied - " .. filename .. string.rep(" ", math.max(0, 17 - #filename)) .. "│",
+    "└─────────────────────────────────────────────┘",
     "",
-    "## Original:",
   }
   
-  -- Add original content lines
-  for _, line in ipairs(original_lines) do
-    table.insert(test_lines, line)
+  -- Find changed lines and show context
+  local context_lines = 3 -- Show 3 lines before and after changes
+  local changes = {}
+  
+  -- First pass: find all changed lines
+  local max_lines = math.max(#original_lines, #new_lines)
+  for i = 1, max_lines do
+    local orig_line = original_lines[i] or ""
+    local new_line = new_lines[i] or ""
+    
+    if orig_line ~= new_line then
+      table.insert(changes, {
+        line_num = i,
+        original = orig_line,
+        new = new_line,
+        type = orig_line == "" and "added" or (new_line == "" and "removed" or "modified")
+      })
+    end
   end
   
-  table.insert(test_lines, "")
-  table.insert(test_lines, "## New:")
-  
-  -- Add new content lines
-  for _, line in ipairs(new_lines) do
-    table.insert(test_lines, line)
+  if #changes == 0 then
+    table.insert(test_lines, "ℹ️  No differences detected")
+    table.insert(test_lines, "")
+    table.insert(test_lines, "Press [q] to close")
+  else
+    -- Show contextual diff for each change
+    for _, change in ipairs(changes) do
+      local start_context = math.max(1, change.line_num - context_lines)
+      local end_context = math.min(max_lines, change.line_num + context_lines)
+      
+      -- Show context lines before
+      for i = start_context, change.line_num - 1 do
+        if original_lines[i] then
+          table.insert(test_lines, string.format("  %3d    %s", i, original_lines[i]))
+        end
+      end
+      
+      -- Show the actual change
+      if change.type == "modified" then
+        table.insert(test_lines, string.format("  %3d -  %s", change.line_num, change.original))
+        table.insert(test_lines, string.format("  %3d +  %s", change.line_num, change.new))
+      elseif change.type == "removed" then
+        table.insert(test_lines, string.format("  %3d -  %s", change.line_num, change.original))
+      elseif change.type == "added" then
+        table.insert(test_lines, string.format("  %3d +  %s", change.line_num, change.new))
+      end
+      
+      -- Show context lines after
+      for i = change.line_num + 1, end_context do
+        if new_lines[i] then
+          table.insert(test_lines, string.format("  %3d    %s", i, new_lines[i]))
+        end
+      end
+      
+      -- Add separator if there are more changes
+      if change ~= changes[#changes] then
+        table.insert(test_lines, "")
+        table.insert(test_lines, "  ─────────────────────────────────────────")
+        table.insert(test_lines, "")
+      end
+    end
+    
+    table.insert(test_lines, "")
+    table.insert(test_lines, "✅ Changes have been applied successfully")
+    table.insert(test_lines, "")
+    table.insert(test_lines, "Press [q] to close this diff view")
   end
-  
-  table.insert(test_lines, "")
-  table.insert(test_lines, "Press 'a' to accept, 'r' to reject, 'q' to close")
   
   api.nvim_buf_set_lines(state.diff_buffer, 0, -1, false, test_lines)
   api.nvim_buf_set_option(state.diff_buffer, "modifiable", false)
   
-  -- Set buffer keymaps
+  -- Apply syntax highlighting for diff
+  local namespace = api.nvim_create_namespace("claude_diff")
+  
+  -- Define highlight groups with more compatible colors
+  vim.cmd([[
+    highlight ClaudeDiffAdded guifg=#50C878 ctermfg=green gui=bold cterm=bold
+    highlight ClaudeDiffRemoved guifg=#FF6B6B ctermfg=red gui=bold cterm=bold
+    highlight ClaudeDiffContext guifg=#A0A0A0 ctermfg=gray
+    highlight ClaudeDiffHeader guifg=#61AFEF ctermfg=blue gui=bold cterm=bold
+    highlight ClaudeDiffSeparator guifg=#5C6370 ctermfg=darkgray
+  ]])
+  
+  -- Apply highlights to the lines
+  for i, line in ipairs(test_lines) do
+    local line_idx = i - 1  -- 0-based for nvim_buf_add_highlight
+    
+    -- Debug: let's see what we're matching
+    if line:match("^┌") or line:match("^│") or line:match("^└") then
+      -- Header lines (blue)
+      api.nvim_buf_add_highlight(state.diff_buffer, namespace, "ClaudeDiffHeader", line_idx, 0, -1)
+    elseif line:find("%+  ") then
+      -- Added lines (green) - lines containing "+ "
+      api.nvim_buf_add_highlight(state.diff_buffer, namespace, "ClaudeDiffAdded", line_idx, 0, -1)
+    elseif line:find("%-  ") then
+      -- Removed lines (red) - lines containing "- "
+      api.nvim_buf_add_highlight(state.diff_buffer, namespace, "ClaudeDiffRemoved", line_idx, 0, -1)
+    elseif line:match("^  %d+    ") then
+      -- Context lines (gray) - normal context lines
+      api.nvim_buf_add_highlight(state.diff_buffer, namespace, "ClaudeDiffContext", line_idx, 0, -1)
+    elseif line:match("─") then
+      -- Separator lines
+      api.nvim_buf_add_highlight(state.diff_buffer, namespace, "ClaudeDiffSeparator", line_idx, 0, -1)
+    end
+  end
+  
+  -- Set buffer keymaps (only close since changes are already applied)
   local opts = { buffer = state.diff_buffer, silent = true }
-  vim.keymap.set("n", "a", function() M.accept_diff() end, opts)
-  vim.keymap.set("n", "r", function() M.reject_diff() end, opts)
   vim.keymap.set("n", "q", "<cmd>close<cr>", opts)
   vim.keymap.set("n", "<Esc>", "<cmd>close<cr>", opts)
+  vim.keymap.set("n", "<CR>", "<cmd>close<cr>", opts)  -- Enter to close too
   
   -- Show notification
-  vim.notify("📝 Claude wants to modify " .. (diff_data.filename or "unknown") .. ". Press 'a' to accept, 'r' to reject", vim.log.levels.INFO)
+  vim.notify("🤖 Claude Code applied changes to " .. vim.fn.fnamemodify(diff_data.filename or "unknown", ":t"), vim.log.levels.INFO)
 end
 
 -- Generate diff content for display
