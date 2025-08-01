@@ -25,9 +25,13 @@ local default_config = {
     show_diff = "<leader>cd",
   },
   diff_options = {
-    algorithm = "myers",
-    context = 3,
-    ignore_whitespace = false,
+    algorithm = "github",         -- Algorithm: github, myers, patience, histogram 
+    context = 3,                  -- Lines of context around changes
+    full_context = true,          -- Show full context like GitHub (vs minimal hunks)
+    ignore_whitespace = false,    -- Ignore whitespace differences
+    ignore_blank_lines = false,   -- Ignore blank line differences
+    word_diff = true,             -- Enable word-level diff highlighting
+    minimal_diff = false,         -- Show only changed blocks, not entire file
   },
 }
 
@@ -144,133 +148,272 @@ function handle_http_request(client, data)
   end)
 end
 
--- Find change blocks like GitHub diff viewer
+-- GitHub-style Diff Algorithm with proper block grouping
 function find_change_blocks(original_lines, new_lines)
-  local blocks = {}
+  local context_lines = state.config.diff_options.context or 3
+  local full_context = state.config.diff_options.full_context or false
+  local ignore_whitespace = state.config.diff_options.ignore_whitespace
+  local ignore_blank_lines = state.config.diff_options.ignore_blank_lines
   
-  -- Create a more precise diff using Myers algorithm approach
-  local function create_line_map(lines)
-    local map = {}
-    for i, line in ipairs(lines) do
-      if not map[line] then
-        map[line] = {}
-      end
-      table.insert(map[line], i)
-    end
-    return map
+  -- If full_context is enabled, use larger context windows
+  if full_context then
+    context_lines = math.max(context_lines, 10)
   end
   
-  -- Find longest common subsequence
-  local function find_lcs()
-    local orig_map = create_line_map(original_lines)
-    local matches = {}
+  -- Simple unified diff approach like GitHub
+  local function create_unified_diff()
+    local hunks = {}
+    local i, j = 1, 1  -- original and new line indices
     
-    -- Find matching lines
-    for j, new_line in ipairs(new_lines) do
-      if orig_map[new_line] then
-        for _, i in ipairs(orig_map[new_line]) do
-          table.insert(matches, {orig = i, new = j, line = new_line})
+    while i <= #original_lines or j <= #new_lines do
+      local hunk_start_orig = i
+      local hunk_start_new = j
+      local changes = {}
+      local has_changes = false
+      
+      -- Scan for differences
+      while i <= #original_lines and j <= #new_lines do
+        local orig_line = original_lines[i] or ""
+        local new_line = new_lines[j] or ""
+        
+        -- Normalize for comparison if needed
+        local norm_orig = orig_line
+        local norm_new = new_line
+        
+        if ignore_whitespace then
+          norm_orig = orig_line:gsub("%s+", " "):gsub("^%s+", ""):gsub("%s+$", "")
+          norm_new = new_line:gsub("%s+", " "):gsub("^%s+", ""):gsub("%s+$", "")
         end
-      end
-    end
-    
-    -- Sort by original line number
-    table.sort(matches, function(a, b) return a.orig < b.orig end)
-    
-    -- Find LCS (longest increasing subsequence in new indices)
-    local lcs = {}
-    for _, match in ipairs(matches) do
-      local best_prev = 0
-      for k, prev_match in ipairs(lcs) do
-        if prev_match.new < match.new and k > best_prev then
-          best_prev = k
+        
+        if ignore_blank_lines and norm_orig:match("^%s*$") and norm_new:match("^%s*$") then
+          norm_orig = ""
+          norm_new = ""
+        end
+        
+        if norm_orig == norm_new then
+          -- Lines match
+          table.insert(changes, {
+            type = "equal",
+            orig_line = i,
+            new_line = j,
+            content = orig_line
+          })
+          i = i + 1
+          j = j + 1
+        else
+          -- Lines differ - this is where we need to be smart
+          has_changes = true
+          
+          -- Look ahead to see if this is a simple replacement or insertion/deletion
+          local found_match_ahead = false
+          local lookahead_orig, lookahead_new = i + 1, j + 1
+          
+          -- Check if original line appears later in new (deletion)
+          for k = j, math.min(j + 10, #new_lines) do
+            if original_lines[i] == new_lines[k] then
+              -- Found original line later, so new lines before it are insertions
+              for insert_idx = j, k - 1 do
+                table.insert(changes, {
+                  type = "insert",
+                  new_line = insert_idx,
+                  content = new_lines[insert_idx]
+                })
+              end
+              j = k
+              found_match_ahead = true
+              break
+            end
+          end
+          
+          if not found_match_ahead then
+            -- Check if new line appears later in original (insertion)
+            for k = i, math.min(i + 10, #original_lines) do
+              if new_lines[j] == original_lines[k] then
+                -- Found new line later, so original lines before it are deletions
+                for delete_idx = i, k - 1 do
+                  table.insert(changes, {
+                    type = "delete",
+                    orig_line = delete_idx,
+                    content = original_lines[delete_idx]
+                  })
+                end
+                i = k
+                found_match_ahead = true
+                break
+              end
+            end
+          end
+          
+          if not found_match_ahead then
+            -- No match found ahead, treat as replacement
+            table.insert(changes, {
+              type = "delete",
+              orig_line = i,
+              content = original_lines[i]
+            })
+            table.insert(changes, {
+              type = "insert", 
+              new_line = j,
+              content = new_lines[j]
+            })
+            i = i + 1
+            j = j + 1
+          end
+        end
+        
+        -- If we've found changes and then several matching lines, finish this hunk
+        if has_changes then
+          local consecutive_matches = 0
+          local temp_i, temp_j = i, j
+          
+          while temp_i <= #original_lines and temp_j <= #new_lines and 
+                (original_lines[temp_i] or "") == (new_lines[temp_j] or "") do
+            consecutive_matches = consecutive_matches + 1
+            temp_i = temp_i + 1
+            temp_j = temp_j + 1
+            
+            local threshold = full_context and context_lines or context_lines * 2
+            if consecutive_matches >= threshold then
+              -- Add context after and finish hunk
+              for ctx = 1, context_lines do
+                if i + ctx - 1 <= #original_lines then
+                  table.insert(changes, {
+                    type = "equal",
+                    orig_line = i + ctx - 1,
+                    new_line = j + ctx - 1,
+                    content = original_lines[i + ctx - 1]
+                  })
+                end
+              end
+              break
+            end
+          end
+          
+          local threshold = full_context and context_lines or context_lines * 2
+          if consecutive_matches >= threshold then
+            break
+          end
         end
       end
       
-      -- Insert at the right position
-      table.insert(lcs, best_prev + 1, match)
-      
-      -- Remove elements that are no longer valid
-      for k = #lcs, best_prev + 2, -1 do
-        if lcs[k].new >= match.new then
-          table.remove(lcs, k)
-        end
-      end
-    end
-    
-    return lcs
-  end
-  
-  local lcs = find_lcs()
-  
-  -- Create diff blocks based on LCS
-  local orig_idx, new_idx = 1, 1
-  
-  for _, match in ipairs(lcs) do
-    -- Check if there are differences before this match
-    if orig_idx < match.orig or new_idx < match.new then
-      local block = {
-        removed = {},
-        added = {}
-      }
-      
-      -- Add removed lines
-      while orig_idx < match.orig do
-        table.insert(block.removed, {
-          line_num = orig_idx,
-          content = " " .. original_lines[orig_idx]
+      -- Handle remaining lines
+      while i <= #original_lines do
+        table.insert(changes, {
+          type = "delete",
+          orig_line = i,
+          content = original_lines[i]
         })
-        orig_idx = orig_idx + 1
+        i = i + 1
+        has_changes = true
       end
       
-      -- Add added lines
-      while new_idx < match.new do
-        table.insert(block.added, {
-          line_num = new_idx,
-          content = " " .. new_lines[new_idx]
+      while j <= #new_lines do
+        table.insert(changes, {
+          type = "insert",
+          new_line = j,
+          content = new_lines[j]
         })
-        new_idx = new_idx + 1
+        j = j + 1
+        has_changes = true
       end
       
-      if #block.removed > 0 or #block.added > 0 then
-        table.insert(blocks, block)
+      -- Create hunk if there were changes
+      if has_changes and #changes > 0 then
+        -- Add context before
+        local context_before = {}
+        local start_context = math.max(1, hunk_start_orig - context_lines)
+        for ctx = start_context, hunk_start_orig - 1 do
+          if ctx > 0 and ctx <= #original_lines then
+            table.insert(context_before, {
+              type = "equal",
+              orig_line = ctx,
+              new_line = ctx,  -- approximate
+              content = original_lines[ctx]
+            })
+          end
+        end
+        
+        -- Combine context_before + changes
+        local all_changes = {}
+        for _, ctx in ipairs(context_before) do
+          table.insert(all_changes, ctx)
+        end
+        for _, change in ipairs(changes) do
+          table.insert(all_changes, change)
+        end
+        
+        table.insert(hunks, {
+          start_orig = start_context,
+          start_new = hunk_start_new - #context_before,
+          changes = all_changes
+        })
       end
     end
     
-    -- Skip the matching line
-    orig_idx = match.orig + 1
-    new_idx = match.new + 1
+    return hunks
   end
   
-  -- Handle remaining lines after last match
-  if orig_idx <= #original_lines or new_idx <= #new_lines then
-    local block = {
-      removed = {},
-      added = {}
-    }
-    
-    while orig_idx <= #original_lines do
-      table.insert(block.removed, {
-        line_num = orig_idx,
-        content = " " .. original_lines[orig_idx]
-      })
-      orig_idx = orig_idx + 1
-    end
-    
-    while new_idx <= #new_lines do
-      table.insert(block.added, {
-        line_num = new_idx,
-        content = " " .. new_lines[new_idx]
-      })
-      new_idx = new_idx + 1
-    end
-    
-    if #block.removed > 0 or #block.added > 0 then
-      table.insert(blocks, block)
-    end
+  return create_unified_diff()
+end
+
+-- Helper function to calculate word-level diff for intra-line changes
+local function calculate_word_diff(old_line, new_line)
+  if old_line == new_line then
+    return {type = "equal", content = old_line}
   end
   
-  return blocks
+  local old_words = vim.split(old_line, "%s+")
+  local new_words = vim.split(new_line, "%s+")
+  
+  -- Simple word-level LCS for intra-line diff
+  local function word_lcs(a, b)
+    local m, n = #a, #b
+    local dp = {}
+    
+    for i = 0, m do
+      dp[i] = {}
+      for j = 0, n do
+        if i == 0 or j == 0 then
+          dp[i][j] = 0
+        elseif a[i] == b[j] then
+          dp[i][j] = dp[i-1][j-1] + 1
+        else
+          dp[i][j] = math.max(dp[i-1][j], dp[i][j-1])
+        end
+      end
+    end
+    
+    -- Backtrack to find the changes
+    local result = {}
+    local i, j = m, n
+    
+    while i > 0 and j > 0 do
+      if a[i] == b[j] then
+        table.insert(result, 1, {type = "equal", word = a[i]})
+        i, j = i - 1, j - 1
+      elseif dp[i-1][j] > dp[i][j-1] then
+        table.insert(result, 1, {type = "removed", word = a[i]})
+        i = i - 1
+      else
+        table.insert(result, 1, {type = "added", word = b[j]})
+        j = j - 1
+      end
+    end
+    
+    while i > 0 do
+      table.insert(result, 1, {type = "removed", word = a[i]})
+      i = i - 1
+    end
+    
+    while j > 0 do
+      table.insert(result, 1, {type = "added", word = b[j]})
+      j = j - 1
+    end
+    
+    return result
+  end
+  
+  return word_lcs(old_words, new_words)
 end
 
 -- Create diff buffer and show visual diff side-by-side
@@ -376,25 +519,55 @@ function show_diff_view(diff_data)
     table.insert(right_lines, line)
   end
   
-  -- Find changed blocks
-  local blocks = find_change_blocks(original_lines, new_lines)
+  -- Find changed hunks using GitHub-style algorithm
+  local hunks = find_change_blocks(original_lines, new_lines)
   
-  if #blocks == 0 then
+  if #hunks == 0 then
     table.insert(left_lines, "ℹ️  No differences detected")
     table.insert(right_lines, "ℹ️  File is identical")
   else
-    -- Show files side by side with synchronized diff view
-    -- Left: original file complete
-    -- Right: new file complete
-    
-    -- Add all original lines to left
-    for i, line in ipairs(original_lines) do
-      table.insert(left_lines, string.format("%3d │ %s", i, line))
-    end
-    
-    -- Add all new lines to right
-    for i, line in ipairs(new_lines) do
-      table.insert(right_lines, string.format("%3d │ %s", i, line))
+    -- Process each hunk without duplication
+    for hunk_idx, hunk in ipairs(hunks) do
+      -- Add hunk separator if not first hunk
+      if hunk_idx > 1 then
+        table.insert(left_lines, "")
+        table.insert(right_lines, "")
+        table.insert(left_lines, "  " .. string.rep("⋯", 20))
+        table.insert(right_lines, "  " .. string.rep("⋯", 20))
+        table.insert(left_lines, "")
+        table.insert(right_lines, "")
+      end
+      
+      -- Process all changes in the hunk sequentially
+      local orig_line_num = hunk.start_orig
+      local new_line_num = hunk.start_new
+      
+      for _, change in ipairs(hunk.changes) do
+        if change.type == "equal" then
+          -- Context line - show on both sides
+          local line_content = string.format("%3d │ %s", orig_line_num, change.content)
+          table.insert(left_lines, line_content)
+          table.insert(right_lines, line_content)
+          orig_line_num = orig_line_num + 1
+          new_line_num = new_line_num + 1
+          
+        elseif change.type == "delete" then
+          -- Deleted line - show only on left side
+          local left_content = string.format("%3d │-%s", orig_line_num, change.content)
+          local right_content = "    │ "  -- Empty placeholder
+          table.insert(left_lines, left_content)
+          table.insert(right_lines, right_content)
+          orig_line_num = orig_line_num + 1
+          
+        elseif change.type == "insert" then
+          -- Inserted line - show only on right side
+          local left_content = "    │ "  -- Empty placeholder
+          local right_content = string.format("%3d │+%s", new_line_num, change.content)
+          table.insert(left_lines, left_content)
+          table.insert(right_lines, right_content)
+          new_line_num = new_line_num + 1
+        end
+      end
     end
     
     -- Pad shorter side to match length
@@ -433,28 +606,7 @@ function show_diff_view(diff_data)
     highlight ClaudeDiffSeparator guifg=#5C6370 ctermfg=darkgray
   ]])
   
-  -- Create diff markers for highlighting
-  local left_highlights = {}
-  local right_highlights = {}
-  
-  -- Simple line-by-line comparison to find changes
-  local max_check = math.max(#original_lines, #new_lines)
-  
-  for i = 1, max_check do
-    local orig = original_lines[i] or ""
-    local new = new_lines[i] or ""
-    
-    if orig ~= new then
-      if orig ~= "" then
-        left_highlights[i] = "removed"
-      end
-      if new ~= "" then
-        right_highlights[i] = "added"
-      end
-    end
-  end
-  
-  -- Apply highlights and signs to buffers
+  -- Apply precise highlighting based on diff blocks
   -- First, apply headers
   for i = 1, 7 do -- Header lines
     if i <= #left_lines then
@@ -468,21 +620,37 @@ function show_diff_view(diff_data)
   -- Apply highlights to content lines
   for i = 8, #left_lines do -- Skip header lines
     local line_idx = i - 1
-    local line_num = i - 7 -- Adjust for header offset
+    local line_content = left_lines[i]
     
-    -- Left buffer highlights
-    if left_highlights[line_num] == "removed" then
-      api.nvim_buf_add_highlight(state.diff_buffer, namespace, "ClaudeDiffRemoved", line_idx, 0, -1)
+    if line_content then
+      -- Check for deletion marker
+      if line_content:match("^%s*%d+%s*│%-") then
+        api.nvim_buf_add_highlight(state.diff_buffer, namespace, "ClaudeDiffRemoved", line_idx, 0, -1)
+      -- Check for context separator
+      elseif line_content:match("⋯") then
+        api.nvim_buf_add_highlight(state.diff_buffer, namespace, "ClaudeDiffSeparator", line_idx, 0, -1)
+      -- Context lines (normal highlighting)
+      elseif line_content:match("^%s*%d+%s*│%s") then
+        api.nvim_buf_add_highlight(state.diff_buffer, namespace, "ClaudeDiffContext", line_idx, 0, -1)
+      end
     end
   end
   
   for i = 8, #right_lines do -- Skip header lines
     local line_idx = i - 1
-    local line_num = i - 7 -- Adjust for header offset
+    local line_content = right_lines[i]
     
-    -- Right buffer highlights
-    if right_highlights[line_num] == "added" then
-      api.nvim_buf_add_highlight(state.diff_buffer_new, namespace, "ClaudeDiffAdded", line_idx, 0, -1)
+    if line_content then
+      -- Check for addition marker
+      if line_content:match("^%s*%d+%s*│%+") then
+        api.nvim_buf_add_highlight(state.diff_buffer_new, namespace, "ClaudeDiffAdded", line_idx, 0, -1)
+      -- Check for context separator
+      elseif line_content:match("⋯") then
+        api.nvim_buf_add_highlight(state.diff_buffer_new, namespace, "ClaudeDiffSeparator", line_idx, 0, -1)
+      -- Context lines (normal highlighting)
+      elseif line_content:match("^%s*%d+%s*│%s") then
+        api.nvim_buf_add_highlight(state.diff_buffer_new, namespace, "ClaudeDiffContext", line_idx, 0, -1)
+      end
     end
   end
   
