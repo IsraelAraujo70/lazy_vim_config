@@ -4,35 +4,19 @@ return {
     "williamboman/mason.nvim",
     opts = {
       ensure_installed = {
-        -- LSP servers
+        -- LSP servers essenciais
         "typescript-language-server",
-        "eslint-lsp",
         "html-lsp",
         "css-lsp",
-        "tailwindcss-language-server",
         "emmet-ls",
         "intelephense",
-        "phpactor",
         
-        -- Formatters
+        -- Formatters básicos
         "prettier",
-        "prettierd",
         "php-cs-fixer",
-        "pint",
         
-        -- Linters
-        "eslint_d",
-        "phpstan",
-        "psalm",
-        
-        -- DAP (Debug Adapter Protocol)
-        "node-debug2-adapter",
-        "php-debug-adapter",
-        
-        -- Other tools
+        -- Outros tools essenciais
         "stylua",
-        "shfmt",
-        "shellcheck",
       },
     },
   },
@@ -80,11 +64,12 @@ return {
     "mfussenegger/nvim-lint",
     opts = {
       linters_by_ft = {
-        javascript = { "eslint_d" },
-        typescript = { "eslint_d" },
-        javascriptreact = { "eslint_d" },
-        typescriptreact = { "eslint_d" },
-        php = { "phpstan" },
+        -- Removido eslint_d para evitar erros de parsing
+        -- javascript = { "eslint_d" },
+        -- typescript = { "eslint_d" },
+        -- javascriptreact = { "eslint_d" },
+        -- typescriptreact = { "eslint_d" },
+        -- php = { "phpstan" }, -- Removido temporariamente
       },
     },
   },

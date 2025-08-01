@@ -9,7 +9,7 @@ local map = vim.keymap.set
 
 -- FILE OPERATIONS
 map("n", "<C-n>", "<cmd>enew<cr>", { desc = "📄 New File" })
-map("n", "<C-o>", "<cmd>Telescope find_files<cr>", { desc = "📂 Open File" })
+-- map("n", "<C-o>", "<cmd>Telescope find_files<cr>", { desc = "📂 Open File" }) -- Removido - não funcionava
 map("n", "<C-s>", "<cmd>w<cr>", { desc = "💾 Save File" })
 map("i", "<C-s>", "<cmd>w<cr>", { desc = "💾 Save File" })
 map("n", "<C-S-s>", "<cmd>w ", { desc = "💾 Save As..." })
@@ -18,12 +18,12 @@ map("n", "<C-w>", "<cmd>bd<cr>", { desc = "❌ Close File" })
 
 -- NAVIGATION - Atalhos para navegação entre arquivos e buffers
 map("n", "<C-p>", "<cmd>Telescope find_files<cr>", { desc = "🔍 Quick Open" })
-map("n", "<C-S-p>", "<cmd>Telescope commands<cr>", { desc = "⚡ Command Palette" })
+map("n", "<C-S-p>", ":", { desc = "⚡ Command Mode" })
 map("n", "<leader>e", "<cmd>Neotree toggle<cr>", { desc = "🌳 Toggle Explorer" })
 map("n", "<C-`>", "<cmd>ToggleTerm<cr>", { desc = "💻 Toggle Terminal" })
 
 -- SEARCH & REPLACE - Ferramentas de busca e substituição
-map("n", "<C-f>", "/", { desc = "🔍 Find" })
+map("n", "<C-f>", "/", { desc = "🔍 Find in File" })
 map("n", "<C-h>", "<cmd>lua require('spectre').toggle()<cr>", { desc = "🔄 Find & Replace" })
 map("n", "<C-S-f>", "<cmd>Telescope live_grep<cr>", { desc = "🔍 Find in Files" })
 
@@ -32,13 +32,13 @@ map("v", "<C-c>", '"+y', { desc = "📋 Copy" })
 map({ "n", "v", "i" }, "<C-v>", '"+p', { desc = "📋 Paste" })
 map("v", "<C-x>", '"+d', { desc = "✂️ Cut" })
 map("n", "<C-z>", "u", { desc = "↩️ Undo" })
-map("n", "<C-S-z>", "<C-r>", { desc = "↪️ Redo" })
+map("n", "<C-y>", "<C-r>", { desc = "↪️ Redo" })
 map("n", "<C-a>", "ggVG", { desc = "🎯 Select All" })
 
 -- DUPLICATE & DELETE - Duplicar e deletar linhas e seleções
-map("n", "<C-S-d>", "yyp", { desc = "📄 Duplicate Line" })
-map("v", "<C-S-d>", "y'>p", { desc = "📄 Duplicate Selection" })
-map("n", "<C-S-k>", "dd", { desc = "🗑️ Delete Line" })
+-- map("n", "<C-S-d>", "yyp", { desc = "📄 Duplicate Line" }) -- Removido - usuário não usa
+-- map("v", "<C-S-d>", "y'>p", { desc = "📄 Duplicate Selection" }) -- Removido - usuário não usa
+-- map("n", "<C-S-k>", "dd", { desc = "🗑️ Delete Line" }) -- Removido - usuário não usa
 
 -- MOVE LINES - Mover linhas para cima e para baixo
 map("n", "<A-Up>", "<cmd>m .-2<cr>==", { desc = "⬆️ Move Line Up" })
@@ -47,17 +47,18 @@ map("v", "<A-Up>", ":m '<-2<cr>gv=gv", { desc = "⬆️ Move Lines Up" })
 map("v", "<A-Down>", ":m '>+1<cr>gv=gv", { desc = "⬇️ Move Lines Down" })
 
 -- COMMENTS - Toggle de comentários em linha e bloco
-map("n", "<C-/>", "gcc", { desc = "💬 Toggle Comment", remap = true })
-map("v", "<C-/>", "gc", { desc = "💬 Toggle Comment", remap = true })
+-- Precisa verificar se funciona corretamente
+map("n", "<C-_>", "gcc", { desc = "💬 Toggle Comment", remap = true })
+map("v", "<C-_>", "gc", { desc = "💬 Toggle Comment", remap = true })
 
--- TAB NAVIGATION - Navegação entre abas e buffers
-map("n", "<C-Tab>", "<cmd>bnext<cr>", { desc = "➡️ Next Tab" })
-map("n", "<C-S-Tab>", "<cmd>bprevious<cr>", { desc = "⬅️ Previous Tab" })
-map("n", "<C-1>", "<cmd>BufferLineGoToBuffer 1<cr>", { desc = "1️⃣ Go to Tab 1" })
-map("n", "<C-2>", "<cmd>BufferLineGoToBuffer 2<cr>", { desc = "2️⃣ Go to Tab 2" })
-map("n", "<C-3>", "<cmd>BufferLineGoToBuffer 3<cr>", { desc = "3️⃣ Go to Tab 3" })
-map("n", "<C-4>", "<cmd>BufferLineGoToBuffer 4<cr>", { desc = "4️⃣ Go to Tab 4" })
-map("n", "<C-5>", "<cmd>BufferLineGoToBuffer 5<cr>", { desc = "5️⃣ Go to Tab 5" })
+-- TAB NAVIGATION - Removido conforme solicitado pelo usuário
+-- map("n", "<C-Tab>", "<cmd>bnext<cr>", { desc = "➡️ Next Tab" })
+-- map("n", "<C-S-Tab>", "<cmd>bprevious<cr>", { desc = "⬅️ Previous Tab" })
+-- map("n", "<C-1>", "<cmd>BufferLineGoToBuffer 1<cr>", { desc = "1️⃣ Go to Tab 1" })
+-- map("n", "<C-2>", "<cmd>BufferLineGoToBuffer 2<cr>", { desc = "2️⃣ Go to Tab 2" })
+-- map("n", "<C-3>", "<cmd>BufferLineGoToBuffer 3<cr>", { desc = "3️⃣ Go to Tab 3" })
+-- map("n", "<C-4>", "<cmd>BufferLineGoToBuffer 4<cr>", { desc = "4️⃣ Go to Tab 4" })
+-- map("n", "<C-5>", "<cmd>BufferLineGoToBuffer 5<cr>", { desc = "5️⃣ Go to Tab 5" })
 
 -- ========================================
 -- 🛠️ DEVELOPMENT TOOLS - Ferramentas de desenvolvimento
@@ -101,11 +102,11 @@ end, { desc = "🎨 Format Document" })
 map({ "n", "x" }, "j", "v:count == 0 ? 'gj' : 'j'", { expr = true, silent = true })
 map({ "n", "x" }, "k", "v:count == 0 ? 'gk' : 'k'", { expr = true, silent = true })
 
--- Window navigation
-map("n", "<C-h>", "<C-w>h", { desc = "⬅️ Go to Left Window", remap = true })
-map("n", "<C-j>", "<C-w>j", { desc = "⬇️ Go to Lower Window", remap = true })
-map("n", "<C-k>", "<C-w>k", { desc = "⬆️ Go to Upper Window", remap = true })
-map("n", "<C-l>", "<C-w>l", { desc = "➡️ Go to Right Window", remap = true })
+-- Window navigation - Removido conforme solicitado
+-- map("n", "<C-h>", "<C-w>h", { desc = "⬅️ Go to Left Window", remap = true })
+-- map("n", "<C-j>", "<C-w>j", { desc = "⬇️ Go to Lower Window", remap = true })
+-- map("n", "<C-k>", "<C-w>k", { desc = "⬆️ Go to Upper Window", remap = true })
+-- map("n", "<C-l>", "<C-w>l", { desc = "➡️ Go to Right Window", remap = true })
 
 -- Better indenting
 map("v", "<", "<gv", { desc = "⬅️ Indent Left" })
@@ -121,64 +122,115 @@ map({ "i", "n" }, "<esc>", "<cmd>noh<cr><esc>", { desc = "🚫 Clear Search" })
 -- Função para mostrar cheat sheet
 local function show_cheat_sheet()
   local cheat_content = {
-    "🎯 NEOVIM CHEAT SHEET (VS Code Style)",
-    "======================================",
+    "🎯 NEOVIM CHEAT SHEET - APRENDA NEOVIM!",
+    "=========================================",
     "",
-    "📁 FILE OPERATIONS:",
+    "📁 FILE OPERATIONS (Funcionam):",
     "  Ctrl+N          → New File",
-    "  Ctrl+O          → Open File",
     "  Ctrl+S          → Save File",
     "  Ctrl+W          → Close File",
     "",
-    "🔍 SEARCH & NAVIGATION:",
+    "🔍 SEARCH & NAVIGATION (Funcionam):",
     "  Ctrl+P          → Quick Open (Find Files)",
-    "  Ctrl+Shift+P    → Command Palette",
-    "  Ctrl+B          → Toggle File Explorer",
-    "  Ctrl+F          → Find in Current File",
+    "  Ctrl+Shift+P    → Command Mode (:)",
+    "  <leader>e       → Toggle File Explorer",
+    "  /               → Find in Current File",
     "  Ctrl+H          → Find & Replace",
-    "  Ctrl+Shift+F    → Find in All Files",
+    "  :grep texto     → Find in All Files (Neovim)",
     "  Ctrl+`          → Toggle Terminal",
     "",
-    "✂️ EDIT OPERATIONS:",
+    "✂️ EDIT OPERATIONS (Funcionam):",
     "  Ctrl+C          → Copy (Visual mode)",
     "  Ctrl+V          → Paste",
     "  Ctrl+X          → Cut (Visual mode)",
     "  Ctrl+Z          → Undo",
-    "  Ctrl+Shift+Z    → Redo",
+    "  Ctrl+Y          → Redo",
     "  Ctrl+A          → Select All",
-    "  Ctrl+Shift+D    → Duplicate Line/Selection",
-    "  Ctrl+Shift+K    → Delete Line",
     "",
     "🔄 MOVE & ORGANIZE:",
     "  Alt+Up/Down     → Move Line Up/Down",
-    "  Ctrl+/          → Toggle Comment",
+    "  Ctrl+_          → Toggle Comment",
     "  < / >           → Indent Left/Right (Visual)",
     "",
-    "📑 TAB NAVIGATION:",
-    "  Ctrl+Tab        → Next Tab",
-    "  Ctrl+Shift+Tab  → Previous Tab",
-    "  Ctrl+1-5        → Go to Tab 1-5",
-    "",
     "🛠️ DEVELOPMENT:",
-    "  F5              → Start/Continue Debug",
-    "  F9              → Toggle Breakpoint",
-    "  F10/F11/F12     → Step Over/Into/Out",
-    "  F2              → Rename Symbol",
-    "  Ctrl+.          → Code Actions",
     "  gd              → Go to Definition",
     "  gr              → Find References",
     "  K               → Show Documentation",
+    "  F2              → Rename Symbol",
+    "  Ctrl+.          → Code Actions",
     "  Shift+Alt+F     → Format Document",
     "",
-    "🧭 WINDOW NAVIGATION:",
-    "  Ctrl+H/J/K/L    → Move Between Windows",
-    "  j/k             → Move by Visual Lines",
+    "📚 COMANDOS BÁSICOS NEOVIM - APRENDA!",
+    "=====================================",
     "",
-    "💡 SPECIAL COMMANDS:",
+    "🚀 INSERÇÃO DE TEXTO:",
+    "  i               → Insert antes do cursor",
+    "  a               → Insert depois do cursor",
+    "  o               → Nova linha abaixo + insert",
+    "  O               → Nova linha acima + insert",
+    "  A               → Insert no final da linha",
+    "  I               → Insert no início da linha",
+    "",
+    "📋 COPIAR/COLAR (Neovim nativo):",
+    "  yy              → Copiar linha inteira",
+    "  y{motion}       → Copiar movimento (ex: y3j)",
+    "  p               → Colar depois do cursor",
+    "  P               → Colar antes do cursor",
+    "  dd              → Cortar linha inteira",
+    "  d{motion}       → Cortar movimento",
+    "",
+    "🧭 NAVEGAÇÃO RÁPIDA:",
+    "  w               → Próxima palavra",
+    "  b               → Palavra anterior",
+    "  e               → Final da palavra",
+    "  0               → Início da linha",
+    "  $               → Final da linha",
+    "  gg              → Início do arquivo",
+    "  G               → Final do arquivo",
+    "  {número}G       → Ir para linha (ex: 50G)",
+    "  %               → Ir para parêntese/chave correspondente",
+    "",
+    "🔍 BUSCA NATIVA:",
+    "  /texto          → Buscar 'texto' para frente",
+    "  ?texto          → Buscar 'texto' para trás",
+    "  n               → Próximo resultado",
+    "  N               → Resultado anterior",
+    "  *               → Buscar palavra sob cursor",
+    "",
+    "🎯 SELEÇÃO VISUAL:",
+    "  v               → Visual mode (caracteres)",
+    "  V               → Visual Line mode (linhas)",
+    "  Ctrl+v          → Visual Block mode (colunas)",
+    "",
+    "🔄 REPETIR E DESFAZER:",
+    "  .               → Repetir último comando",
+    "  u               → Undo",
+    "  Ctrl+r          → Redo",
+    "",
+    "⚙️ COMANDOS ÚTEIS:",
+    "  :w              → Salvar arquivo",
+    "  :q              → Fechar arquivo",
+    "  :wq             → Salvar e fechar",
+    "  :q!             → Fechar sem salvar",
+    "  :e arquivo      → Abrir arquivo",
+    "  :sp             → Split horizontal",
+    "  :vsp            → Split vertical",
+    "",
+    "💡 DICAS PRO:",
+    "  ci\"             → Change inside quotes",
+    "  di(             → Delete inside parentheses",
+    "  yi{             → Yank inside braces",
+    "  vip             → Select inside paragraph",
+    "  =               → Auto-indent (Visual mode)",
+    "  >>              → Indent linha para direita",
+    "  <<              → Indent linha para esquerda",
+    "",
+    "💻 COMANDOS ESPECIAIS:",
     "  :ch             → Show This Cheat Sheet",
-    "  <Esc>           → Clear Search Highlight",
+    "  <Esc>           → Sair do modo atual/Clear Search",
     "",
-    "Press 'q' to close this cheat sheet",
+    "🎓 DICA: Use os comandos nativos para aprender Neovim!",
+    "Press 'q' or <Esc> to close this cheat sheet",
   }
 
   -- Create a new buffer

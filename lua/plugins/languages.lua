@@ -1,6 +1,27 @@
 return {
-  -- TypeScript/JavaScript support
-  { import = "lazyvim.plugins.extras.lang.typescript" },
+  -- TypeScript/JavaScript support (configuração customizada)
+  {
+    "neovim/nvim-lspconfig",
+    opts = {
+      servers = {
+        tsserver = {
+          enabled = true,
+          settings = {
+            typescript = {
+              preferences = {
+                disableSuggestions = true,
+              },
+            },
+            javascript = {
+              preferences = {
+                disableSuggestions = true,
+              },
+            },
+          },
+        },
+      },
+    },
+  },
 
   -- JSON support
   { import = "lazyvim.plugins.extras.lang.json" },
@@ -31,6 +52,8 @@ return {
                   "**/vendor/**/Tests/**",
                   "**/vendor/**/tests/**",
                   "**/storage/framework/views/*.php",
+                  "**/cache/**",
+                  "**/tmp/**",
                 },
               },
               completion = {
@@ -45,7 +68,26 @@ return {
               },
               environment = {
                 documentRoot = vim.fn.getcwd(),
-                includePaths = { vim.fn.getcwd() .. "/vendor" },
+                includePaths = { 
+                  vim.fn.getcwd() .. "/vendor",
+                  vim.fn.getcwd(),
+                },
+                phpVersion = "8.1",
+              },
+              diagnostics = {
+                enable = true,
+                run = "onType",
+                embeddedLanguages = true,
+                undefinedVariables = false,
+                undefinedFunctions = false,
+                undefinedConstants = false,
+                undefinedClassConstants = false,
+                undefinedMethods = false,
+                undefinedProperties = false,
+                undefinedTypes = false,
+              },
+              runtime = {
+                version = "8.1",
               },
             },
           },

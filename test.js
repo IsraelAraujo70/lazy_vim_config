@@ -1,22 +1,20 @@
-// Calculadora matemática avançada v5.1 - Sistema robusto com detecção de porta ativa!
+/**
+ * Calculadora matemática avançada v5.1
+ * Sistema robusto com detecção de porta ativa
+ * @author Alternativa Desenvolvimento
+ * @version 5.1.0
+ */
 const somar = (a, b) => {
-  // Validação robusta e completa dos parâmetros de entrada
   if (typeof a !== "number" || typeof b !== "number") {
     throw new Error("Parâmetros devem ser números válidos para operação matemática");
   }
   
-  // Verificação de valores especiais
   if (!isFinite(a) || !isFinite(b)) {
     throw new Error("Valores infinitos não são suportados na soma");
   }
   
-  // Execução do cálculo da soma com precisão
   const resultado = a + b;
-  
-  // Sistema de log detalhado da operação matemática
   console.log(`➕ Operação: ${a} + ${b} = ${resultado}`);
-  console.log(`🔢 Tipo de resultado: ${typeof resultado}`);
-  console.log(`✅ Soma executada com precisão matemática!`);
   
   return resultado;
 };
