@@ -538,34 +538,103 @@ function show_diff_view(diff_data)
         table.insert(right_lines, "")
       end
       
-      -- Process all changes in the hunk sequentially
-      local orig_line_num = hunk.start_orig
-      local new_line_num = hunk.start_new
-      
-      for _, change in ipairs(hunk.changes) do
+      -- Group consecutive deletes and inserts to detect modifications
+      local i = 1
+      while i <= #hunk.changes do
+        local change = hunk.changes[i]
+        
         if change.type == "equal" then
-          -- Context line - show on both sides
-          local line_content = string.format("%3d │ %s", orig_line_num, change.content)
+          -- Context line - show on both sides with same line number
+          local line_num = change.orig_line or change.new_line
+          local line_content = string.format("%3d │ %s", line_num, change.content)
           table.insert(left_lines, line_content)
           table.insert(right_lines, line_content)
-          orig_line_num = orig_line_num + 1
-          new_line_num = new_line_num + 1
+          i = i + 1
           
         elseif change.type == "delete" then
-          -- Deleted line - show only on left side
-          local left_content = string.format("%3d │-%s", orig_line_num, change.content)
-          local right_content = "    │ "  -- Empty placeholder
-          table.insert(left_lines, left_content)
-          table.insert(right_lines, right_content)
-          orig_line_num = orig_line_num + 1
+          -- Check if there's a corresponding insert (modification)
+          local j = i
+          local deletes = {}
+          local inserts = {}
+          
+          -- Collect consecutive deletes
+          while j <= #hunk.changes and hunk.changes[j].type == "delete" do
+            table.insert(deletes, hunk.changes[j])
+            j = j + 1
+          end
+          
+          -- Collect consecutive inserts
+          while j <= #hunk.changes and hunk.changes[j].type == "insert" do
+            table.insert(inserts, hunk.changes[j])
+            j = j + 1
+          end
+          
+          -- Process as modification or pure delete/insert
+          if #deletes > 0 and #inserts > 0 then
+            -- Check if lines are actually modified or just moved
+            local k_del = 1
+            local k_ins = 1
+            
+            while k_del <= #deletes or k_ins <= #inserts do
+              local del = deletes[k_del]
+              local ins = inserts[k_ins]
+              
+              if del and ins then
+                -- Compare content to see if it's actually modified
+                local del_content = del.content:gsub("^%s+", ""):gsub("%s+$", "")
+                local ins_content = ins.content:gsub("^%s+", ""):gsub("%s+$", "")
+                
+                if del_content == ins_content then
+                  -- Lines are identical, just moved - show as context
+                  local left_content = string.format("%3d │ %s", del.orig_line, del.content)
+                  local right_content = string.format("%3d │ %s", ins.new_line, ins.content)
+                  table.insert(left_lines, left_content)
+                  table.insert(right_lines, right_content)
+                else
+                  -- Lines are actually modified - show with yellow highlight
+                  local left_content = string.format("%3d │~%s", del.orig_line, del.content)
+                  local right_content = string.format("%3d │~%s", ins.new_line, ins.content)
+                  table.insert(left_lines, left_content)
+                  table.insert(right_lines, right_content)
+                end
+                k_del = k_del + 1
+                k_ins = k_ins + 1
+              elseif del then
+                -- More deletes than inserts - this is a real deletion
+                local left_content = string.format("%3d │-%s", del.orig_line, del.content)
+                local right_content = "    │ "
+                table.insert(left_lines, left_content)
+                table.insert(right_lines, right_content)
+                k_del = k_del + 1
+              elseif ins then
+                -- More inserts than deletes - this is a real insertion
+                local left_content = "    │ "
+                local right_content = string.format("%3d │+%s", ins.new_line, ins.content)
+                table.insert(left_lines, left_content)
+                table.insert(right_lines, right_content)
+                k_ins = k_ins + 1
+              end
+            end
+            
+            i = j
+          else
+            -- Pure deletes (no corresponding inserts)
+            for _, del in ipairs(deletes) do
+              local left_content = string.format("%3d │-%s", del.orig_line, del.content)
+              local right_content = "    │ "
+              table.insert(left_lines, left_content)
+              table.insert(right_lines, right_content)
+            end
+            i = j
+          end
           
         elseif change.type == "insert" then
-          -- Inserted line - show only on right side
-          local left_content = "    │ "  -- Empty placeholder
-          local right_content = string.format("%3d │+%s", new_line_num, change.content)
+          -- Pure insert (shouldn't happen after our grouping, but handle it)
+          local left_content = "    │ "
+          local right_content = string.format("%3d │+%s", change.new_line, change.content)
           table.insert(left_lines, left_content)
           table.insert(right_lines, right_content)
-          new_line_num = new_line_num + 1
+          i = i + 1
         end
       end
     end
@@ -601,6 +670,8 @@ function show_diff_view(diff_data)
   vim.cmd([[
     highlight ClaudeDiffRemoved guibg=#4A1E1E guifg=#FF6B6B ctermfg=red ctermbg=darkred gui=bold cterm=bold
     highlight ClaudeDiffAdded guibg=#1E4A1E guifg=#50C878 ctermfg=green ctermbg=darkgreen gui=bold cterm=bold  
+    highlight ClaudeDiffModified guibg=#4A4A1E guifg=#FFEB3B ctermfg=yellow ctermbg=darkyellow gui=bold cterm=bold
+    highlight ClaudeDiffModifiedText guibg=#5A5A2E guifg=#FFF59D ctermfg=lightyellow ctermbg=darkyellow gui=bold,underline cterm=bold,underline
     highlight ClaudeDiffContext guifg=#7C7C7C ctermfg=gray gui=NONE cterm=NONE
     highlight ClaudeDiffHeader guifg=#61AFEF ctermfg=blue gui=bold cterm=bold
     highlight ClaudeDiffSeparator guifg=#5C6370 ctermfg=darkgray
@@ -623,8 +694,11 @@ function show_diff_view(diff_data)
     local line_content = left_lines[i]
     
     if line_content then
+      -- Check for modification marker
+      if line_content:match("^%s*%d+%s*│~") then
+        api.nvim_buf_add_highlight(state.diff_buffer, namespace, "ClaudeDiffModified", line_idx, 0, -1)
       -- Check for deletion marker
-      if line_content:match("^%s*%d+%s*│%-") then
+      elseif line_content:match("^%s*%d+%s*│%-") then
         api.nvim_buf_add_highlight(state.diff_buffer, namespace, "ClaudeDiffRemoved", line_idx, 0, -1)
       -- Check for context separator
       elseif line_content:match("⋯") then
@@ -641,8 +715,11 @@ function show_diff_view(diff_data)
     local line_content = right_lines[i]
     
     if line_content then
+      -- Check for modification marker
+      if line_content:match("^%s*%d+%s*│~") then
+        api.nvim_buf_add_highlight(state.diff_buffer_new, namespace, "ClaudeDiffModified", line_idx, 0, -1)
       -- Check for addition marker
-      if line_content:match("^%s*%d+%s*│%+") then
+      elseif line_content:match("^%s*%d+%s*│%+") then
         api.nvim_buf_add_highlight(state.diff_buffer_new, namespace, "ClaudeDiffAdded", line_idx, 0, -1)
       -- Check for context separator
       elseif line_content:match("⋯") then

@@ -14,13 +14,21 @@ class MathCalculator {
   }
 
   /**
-   * Addition operation with validation
+   * Addition operation with validation and overflow check
    * @param {number} a - First number
    * @param {number} b - Second number
    * @returns {number} Sum result
+   * @throws {Error} If result would overflow
    */
   add(a, b) {
     this._validateNumbers(a, b);
+    
+    // Check for potential overflow
+    if ((a > 0 && b > Number.MAX_SAFE_INTEGER - a) ||
+        (a < 0 && b < Number.MIN_SAFE_INTEGER - a)) {
+      throw new Error("Addition would result in overflow");
+    }
+    
     const result = a + b;
     this._logOperation("ADD", a, b, result);
 
@@ -114,12 +122,22 @@ class MathCalculator {
     }
 
     if (n <= 1) return 1;
-
-    let result = 1;
-    for (let i = 2; i <= n; i++) {
-      result *= i;
+    
+    // Check for overflow protection
+    if (n > 170) {
+      throw new Error("Factorial would overflow for numbers > 170");
     }
 
+    // Use recursive approach with memoization
+    const memo = {};
+    const factorialRecursive = (num) => {
+      if (num <= 1) return 1;
+      if (memo[num]) return memo[num];
+      memo[num] = num * factorialRecursive(num - 1);
+      return memo[num];
+    };
+
+    const result = factorialRecursive(n);
     this._logOperation("FACTORIAL", n, null, result);
     return result;
   }
@@ -139,9 +157,11 @@ class MathCalculator {
       return n;
     }
 
+    // Add precision control for square root
     const result = Math.sqrt(n);
-    this._logOperation("SQRT", n, null, result);
-    return result;
+    const preciseResult = parseFloat(result.toFixed(this.precision));
+    this._logOperation("SQRT", n, null, preciseResult);
+    return preciseResult;
   }
 
   // === GEOMETRY AND AREA CALCULATIONS ===
@@ -158,6 +178,21 @@ class MathCalculator {
 
     const result = Math.PI * radius * radius;
     console.log(`🔵 Circle area: π × ${radius}² = ${result.toFixed(4)}`);
+    return result;
+  }
+
+  /**
+   * Calculate circle perimeter (circumference)
+   * @param {number} radius - Circle radius
+   * @returns {number} Perimeter result
+   */
+  circlePerimeter(radius) {
+    if (typeof radius !== "number" || radius < 0) {
+      throw new Error("Radius must be a positive number");
+    }
+
+    const result = 2 * Math.PI * radius;
+    console.log(`🔵 Circle perimeter: 2π × ${radius} = ${result.toFixed(4)}`);
     return result;
   }
 
@@ -231,13 +266,14 @@ class MathCalculator {
       throw new Error("Mean requires non-empty array of numbers");
     }
     
-    const sum = numbers.reduce((acc, num) => {
-      this._validateNumbers(num);
-      return acc + num;
-    }, 0);
+    // Validate all numbers first
+    numbers.forEach(num => this._validateNumbers(num));
     
+    const sum = numbers.reduce((acc, num) => acc + num, 0);
     const result = sum / numbers.length;
+    
     console.log(`📊 Mean of [${numbers.join(", ")}] = ${result.toFixed(4)}`);
+    this._logOperation("MEAN", numbers.length, null, result);
     return result;
   }
 
@@ -260,6 +296,34 @@ class MathCalculator {
     
     console.log(`📊 Median of [${numbers.join(", ")}] = ${result}`);
     return result;
+  }
+
+  /**
+   * Calculate mode (most frequent value)
+   * @param {number[]} numbers - Array of numbers
+   * @returns {number[]} Array of mode values
+   */
+  mode(numbers) {
+    if (!Array.isArray(numbers) || numbers.length === 0) {
+      throw new Error("Mode requires non-empty array of numbers");
+    }
+    
+    const frequency = {};
+    let maxFreq = 0;
+    
+    // Count frequencies
+    numbers.forEach(num => {
+      frequency[num] = (frequency[num] || 0) + 1;
+      maxFreq = Math.max(maxFreq, frequency[num]);
+    });
+    
+    // Find all numbers with max frequency
+    const modes = Object.keys(frequency)
+      .filter(num => frequency[num] === maxFreq)
+      .map(Number);
+    
+    console.log(`📊 Mode of [${numbers.join(", ")}] = [${modes.join(", ")}]`);
+    return modes;
   }
 
   // === UTILITY METHODS ===
