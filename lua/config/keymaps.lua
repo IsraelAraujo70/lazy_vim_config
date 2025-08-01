@@ -12,15 +12,17 @@ map("n", "<C-n>", "<cmd>enew<cr>", { desc = "📄 New File" })
 map("n", "<C-o>", "<cmd>Telescope find_files<cr>", { desc = "📂 Open File" })
 map("n", "<C-s>", "<cmd>w<cr>", { desc = "💾 Save File" })
 map("i", "<C-s>", "<cmd>w<cr>", { desc = "💾 Save File" })
+map("n", "<C-S-s>", "<cmd>w ", { desc = "💾 Save As..." })
+map("i", "<C-S-s>", "<cmd>w ", { desc = "💾 Save As..." })
 map("n", "<C-w>", "<cmd>bd<cr>", { desc = "❌ Close File" })
 
--- NAVIGATION
+-- NAVIGATION - Atalhos para navegação entre arquivos e buffers
 map("n", "<C-p>", "<cmd>Telescope find_files<cr>", { desc = "🔍 Quick Open" })
 map("n", "<C-S-p>", "<cmd>Telescope commands<cr>", { desc = "⚡ Command Palette" })
 map("n", "<leader>e", "<cmd>Neotree toggle<cr>", { desc = "🌳 Toggle Explorer" })
 map("n", "<C-`>", "<cmd>ToggleTerm<cr>", { desc = "💻 Toggle Terminal" })
 
--- SEARCH & REPLACE
+-- SEARCH & REPLACE - Ferramentas de busca e substituição
 map("n", "<C-f>", "/", { desc = "🔍 Find" })
 map("n", "<C-h>", "<cmd>lua require('spectre').toggle()<cr>", { desc = "🔄 Find & Replace" })
 map("n", "<C-S-f>", "<cmd>Telescope live_grep<cr>", { desc = "🔍 Find in Files" })
@@ -62,11 +64,21 @@ map("n", "<C-5>", "<cmd>BufferLineGoToBuffer 5<cr>", { desc = "5️⃣ Go to Tab
 -- ========================================
 
 -- DEBUG
-map("n", "<F5>", function() require("dap").continue() end, { desc = "▶️ Debug: Start/Continue" })
-map("n", "<F9>", function() require("dap").toggle_breakpoint() end, { desc = "🔴 Toggle Breakpoint" })
-map("n", "<F10>", function() require("dap").step_over() end, { desc = "⏭️ Step Over" })
-map("n", "<F11>", function() require("dap").step_into() end, { desc = "⏬ Step Into" })
-map("n", "<F12>", function() require("dap").step_out() end, { desc = "⏫ Step Out" })
+map("n", "<F5>", function()
+  require("dap").continue()
+end, { desc = "▶️ Debug: Start/Continue" })
+map("n", "<F9>", function()
+  require("dap").toggle_breakpoint()
+end, { desc = "🔴 Toggle Breakpoint" })
+map("n", "<F10>", function()
+  require("dap").step_over()
+end, { desc = "⏭️ Step Over" })
+map("n", "<F11>", function()
+  require("dap").step_into()
+end, { desc = "⏬ Step Into" })
+map("n", "<F12>", function()
+  require("dap").step_out()
+end, { desc = "⏫ Step Out" })
 
 -- LSP
 map("n", "<C-.>", vim.lsp.buf.code_action, { desc = "💡 Code Action" })
@@ -166,47 +178,47 @@ local function show_cheat_sheet()
     "  :ch             → Show This Cheat Sheet",
     "  <Esc>           → Clear Search Highlight",
     "",
-    "Press 'q' to close this cheat sheet"
+    "Press 'q' to close this cheat sheet",
   }
-  
+
   -- Create a new buffer
   local buf = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, cheat_content)
   vim.bo[buf].modifiable = false
-  vim.bo[buf].buftype = 'nofile'
-  vim.bo[buf].bufhidden = 'wipe'
-  vim.bo[buf].filetype = 'markdown'
-  
+  vim.bo[buf].buftype = "nofile"
+  vim.bo[buf].bufhidden = "wipe"
+  vim.bo[buf].filetype = "markdown"
+
   -- Calculate window size
   local width = math.min(80, vim.o.columns - 4)
   local height = math.min(#cheat_content + 2, vim.o.lines - 6)
   local row = math.floor((vim.o.lines - height) / 2)
   local col = math.floor((vim.o.columns - width) / 2)
-  
+
   -- Create window
   local win = vim.api.nvim_open_win(buf, true, {
-    relative = 'editor',
+    relative = "editor",
     width = width,
     height = height,
     row = row,
     col = col,
-    border = 'rounded',
-    title = ' 📋 Neovim Cheat Sheet ',
-    title_pos = 'center'
+    border = "rounded",
+    title = " 📋 Neovim Cheat Sheet ",
+    title_pos = "center",
   })
-  
+
   -- Set window options
   vim.wo[win].wrap = false
   vim.wo[win].cursorline = true
-  
+
   -- Close with 'q'
-  vim.api.nvim_buf_set_keymap(buf, 'n', 'q', '<cmd>close<cr>', { silent = true })
-  vim.api.nvim_buf_set_keymap(buf, 'n', '<Esc>', '<cmd>close<cr>', { silent = true })
+  vim.api.nvim_buf_set_keymap(buf, "n", "q", "<cmd>close<cr>", { silent = true })
+  vim.api.nvim_buf_set_keymap(buf, "n", "<Esc>", "<cmd>close<cr>", { silent = true })
 end
 
 -- Create the :ch command
-vim.api.nvim_create_user_command('Ch', show_cheat_sheet, { desc = 'Show cheat sheet' })
-map('n', '<leader>ch', show_cheat_sheet, { desc = '📋 Show Cheat Sheet' })
+vim.api.nvim_create_user_command("Ch", show_cheat_sheet, { desc = "Show cheat sheet" })
+map("n", "<leader>ch", show_cheat_sheet, { desc = "📋 Show Cheat Sheet" })
 
 -- ========================================
 -- 🔧 ADDITIONAL USEFUL MAPPINGS
