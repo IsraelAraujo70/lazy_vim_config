@@ -11,12 +11,13 @@ local state = {
   server = nil,
   current_diff = nil,
   diff_buffer = nil,
+  diff_buffer_new = nil,
   original_content = {},
 }
 
--- Default configuration
+-- Default configuration 
 local default_config = {
-  server_port = 38547,
+  server_port_base = 38500,  -- Base port, will find available port
   auto_setup_hooks = true,
   keymaps = {
     accept = "<leader>ca",
@@ -31,13 +32,37 @@ local default_config = {
 }
 
 -- Forward declarations
-local handle_http_request, show_diff_view, generate_diff_content
+local handle_http_request, show_diff_view, generate_diff_content, find_change_blocks
+
+-- Find available port starting from base port
+local function find_available_port(base_port)
+  for port = base_port, base_port + 100 do
+    local server = uv.new_tcp()
+    local ok = pcall(function()
+      server:bind("127.0.0.1", port)
+      server:close()
+    end)
+    if ok then
+      return port
+    end
+  end
+  return nil
+end
 
 -- HTTP server implementation
 local function create_http_server()
+  -- Find available port
+  local port = find_available_port(state.config.server_port_base)
+  if not port then
+    vim.notify("Claude Diff: Could not find available port", vim.log.levels.ERROR)
+    return nil
+  end
+  
+  state.config.server_port = port
+  
   local server = uv.new_tcp()
   
-  server:bind("127.0.0.1", state.config.server_port)
+  server:bind("127.0.0.1", port)
   server:listen(128, function(err)
     if err then
       vim.notify("Claude Diff: Error starting server: " .. err, vim.log.levels.ERROR)
@@ -69,61 +94,223 @@ end
 function handle_http_request(client, data)
   local response = "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nOK"
   
-  -- Parse HTTP POST data
-  local body = data:match("\r\n\r\n(.*)$")
-  if not body then
+  pcall(function()
+    -- Parse HTTP POST data
+    local body = data:match("\r\n\r\n(.*)$")
+    if not body then
+      return
+    end
+    
+    -- Parse JSON payload
+    local ok, diff_data = pcall(vim.json.decode, body)
+    if not ok or not diff_data then
+      vim.notify("Claude Diff: Invalid diff data received", vim.log.levels.ERROR)
+      return
+    end
+    
+    -- Store diff and show it
+    state.current_diff = diff_data
+    
+    -- Call show_diff_view in a protected way
+    local show_ok, show_err = pcall(show_diff_view, diff_data)
+    if not show_ok then
+      vim.notify("Claude Diff: Error showing diff: " .. tostring(show_err), vim.log.levels.ERROR)
+    end
+  end)
+  
+  -- Always send response and close connection
+  pcall(function()
     client:write(response)
     client:close()
-    return
-  end
-  
-  -- Parse JSON payload
-  local ok, diff_data = pcall(vim.json.decode, body)
-  if not ok or not diff_data then
-    vim.notify("Claude Diff: Invalid diff data received", vim.log.levels.ERROR)
-    client:write(response)
-    client:close()
-    return
-  end
-  
-  -- Store diff and show it
-  state.current_diff = diff_data
-  show_diff_view(diff_data)
-  
-  client:write(response)
-  client:close()
+  end)
 end
 
--- Create diff buffer and show visual diff
+-- Find change blocks like GitHub diff viewer
+function find_change_blocks(original_lines, new_lines)
+  local blocks = {}
+  
+  -- Create a more precise diff using Myers algorithm approach
+  local function create_line_map(lines)
+    local map = {}
+    for i, line in ipairs(lines) do
+      if not map[line] then
+        map[line] = {}
+      end
+      table.insert(map[line], i)
+    end
+    return map
+  end
+  
+  -- Find longest common subsequence
+  local function find_lcs()
+    local orig_map = create_line_map(original_lines)
+    local matches = {}
+    
+    -- Find matching lines
+    for j, new_line in ipairs(new_lines) do
+      if orig_map[new_line] then
+        for _, i in ipairs(orig_map[new_line]) do
+          table.insert(matches, {orig = i, new = j, line = new_line})
+        end
+      end
+    end
+    
+    -- Sort by original line number
+    table.sort(matches, function(a, b) return a.orig < b.orig end)
+    
+    -- Find LCS (longest increasing subsequence in new indices)
+    local lcs = {}
+    for _, match in ipairs(matches) do
+      local best_prev = 0
+      for k, prev_match in ipairs(lcs) do
+        if prev_match.new < match.new and k > best_prev then
+          best_prev = k
+        end
+      end
+      
+      -- Insert at the right position
+      table.insert(lcs, best_prev + 1, match)
+      
+      -- Remove elements that are no longer valid
+      for k = #lcs, best_prev + 2, -1 do
+        if lcs[k].new >= match.new then
+          table.remove(lcs, k)
+        end
+      end
+    end
+    
+    return lcs
+  end
+  
+  local lcs = find_lcs()
+  
+  -- Create diff blocks based on LCS
+  local orig_idx, new_idx = 1, 1
+  
+  for _, match in ipairs(lcs) do
+    -- Check if there are differences before this match
+    if orig_idx < match.orig or new_idx < match.new then
+      local block = {
+        removed = {},
+        added = {}
+      }
+      
+      -- Add removed lines
+      while orig_idx < match.orig do
+        table.insert(block.removed, {
+          line_num = orig_idx,
+          content = " " .. original_lines[orig_idx]
+        })
+        orig_idx = orig_idx + 1
+      end
+      
+      -- Add added lines
+      while new_idx < match.new do
+        table.insert(block.added, {
+          line_num = new_idx,
+          content = " " .. new_lines[new_idx]
+        })
+        new_idx = new_idx + 1
+      end
+      
+      if #block.removed > 0 or #block.added > 0 then
+        table.insert(blocks, block)
+      end
+    end
+    
+    -- Skip the matching line
+    orig_idx = match.orig + 1
+    new_idx = match.new + 1
+  end
+  
+  -- Handle remaining lines after last match
+  if orig_idx <= #original_lines or new_idx <= #new_lines then
+    local block = {
+      removed = {},
+      added = {}
+    }
+    
+    while orig_idx <= #original_lines do
+      table.insert(block.removed, {
+        line_num = orig_idx,
+        content = " " .. original_lines[orig_idx]
+      })
+      orig_idx = orig_idx + 1
+    end
+    
+    while new_idx <= #new_lines do
+      table.insert(block.added, {
+        line_num = new_idx,
+        content = " " .. new_lines[new_idx]
+      })
+      new_idx = new_idx + 1
+    end
+    
+    if #block.removed > 0 or #block.added > 0 then
+      table.insert(blocks, block)
+    end
+  end
+  
+  return blocks
+end
+
+-- Create diff buffer and show visual diff side-by-side
 function show_diff_view(diff_data)
   vim.notify("Debug: show_diff_view called with filename: " .. (diff_data.filename or "nil"), vim.log.levels.INFO)
   
-  -- Close existing diff buffer
+  -- Close existing diff buffers
   if state.diff_buffer and api.nvim_buf_is_valid(state.diff_buffer) then
     api.nvim_buf_delete(state.diff_buffer, { force = true })
   end
+  if state.diff_buffer_new and api.nvim_buf_is_valid(state.diff_buffer_new) then
+    api.nvim_buf_delete(state.diff_buffer_new, { force = true })
+  end
   
-  -- Create new diff buffer
-  state.diff_buffer = api.nvim_create_buf(false, true)
+  -- Create two buffers: original (left) and new (right)
+  state.diff_buffer = api.nvim_create_buf(false, true)     -- Original buffer
+  state.diff_buffer_new = api.nvim_create_buf(false, true) -- New buffer
   
-  -- Open diff in vertical split to the right (like VSCode)
+  local filename = vim.fn.fnamemodify(diff_data.filename or "unknown", ":t")
+  
+  -- Open in new tab
+  vim.cmd("tabnew")
+  
+  -- Get the new tab's window
+  local left_win = api.nvim_get_current_win()
+  api.nvim_win_set_buf(left_win, state.diff_buffer)
+  
+  -- Create vertical split for right side
   vim.cmd("vsplit")
-  api.nvim_win_set_buf(0, state.diff_buffer)
+  vim.cmd("wincmd l")  -- Move to the new split
   
-  -- Set window width to be reasonable for diff viewing
-  local width = math.floor(vim.o.columns * 0.4) -- 40% of screen width
-  vim.cmd("vertical resize " .. width)
+  local right_win = api.nvim_get_current_win()
+  api.nvim_win_set_buf(right_win, state.diff_buffer_new)
   
-  -- Set buffer options
-  api.nvim_buf_set_option(state.diff_buffer, "buftype", "nofile")
-  api.nvim_buf_set_option(state.diff_buffer, "swapfile", false)
-  api.nvim_buf_set_option(state.diff_buffer, "filetype", "diff")
-  api.nvim_buf_set_option(state.diff_buffer, "wrap", true)
+  -- Adjust window widths (50% each)
+  local total_width = vim.o.columns
+  local left_width = math.floor(total_width * 0.5)
+  local right_width = total_width - left_width
   
-  -- Set window options for better visibility
-  vim.wo.number = false
-  vim.wo.relativenumber = false
-  vim.wo.signcolumn = "no"
+  api.nvim_win_set_width(left_win, left_width)
+  api.nvim_win_set_width(right_win, right_width)
+  
+  -- Set buffer options for both buffers
+  local buffers = {state.diff_buffer, state.diff_buffer_new}
+  for _, buf in ipairs(buffers) do
+    api.nvim_buf_set_option(buf, "buftype", "nofile")
+    api.nvim_buf_set_option(buf, "swapfile", false)
+    api.nvim_buf_set_option(buf, "filetype", "diff")
+    api.nvim_buf_set_option(buf, "wrap", false)
+    api.nvim_buf_set_option(buf, "modifiable", true)
+  end
+  
+  -- Set window options for both windows
+  for _, win in ipairs({left_win, right_win}) do
+    api.nvim_win_set_option(win, "number", true)
+    api.nvim_win_set_option(win, "relativenumber", false)
+    api.nvim_win_set_option(win, "signcolumn", "no")
+    api.nvim_win_set_option(win, "wrap", false)
+  end
   
   -- Split content into lines properly
   local original_lines = {}
@@ -137,125 +324,205 @@ function show_diff_view(diff_data)
     new_lines = vim.split(diff_data.new_content, "\n")
   end
   
-  local filename = vim.fn.fnamemodify(diff_data.filename or "unknown", ":t")
-  local test_lines = {
+  -- Create side-by-side content
+  local left_lines = {}  -- Original content
+  local right_lines = {} -- New content
+  
+  -- Header for both sides
+  local header = {
     "┌─────────────────────────────────────────────┐",
-    "│  🤖 Claude Code Applied - " .. filename .. string.rep(" ", math.max(0, 17 - #filename)) .. "│",
+    "│  🤖 Claude Code - " .. filename .. string.rep(" ", math.max(0, 22 - #filename)) .. "│",
     "└─────────────────────────────────────────────┘",
     "",
+    "ORIGINAL CODE",
+    string.rep("─", 45),
+    ""
   }
   
-  -- Find changed lines and show context
-  local context_lines = 3 -- Show 3 lines before and after changes
-  local changes = {}
+  local header_new = {
+    "┌─────────────────────────────────────────────┐", 
+    "│  🤖 Claude Code - " .. filename .. string.rep(" ", math.max(0, 22 - #filename)) .. "│",
+    "└─────────────────────────────────────────────┘",
+    "",
+    "NEW CODE", 
+    string.rep("─", 45),
+    ""
+  }
   
-  -- First pass: find all changed lines
-  local max_lines = math.max(#original_lines, #new_lines)
-  for i = 1, max_lines do
-    local orig_line = original_lines[i] or ""
-    local new_line = new_lines[i] or ""
-    
-    if orig_line ~= new_line then
-      table.insert(changes, {
-        line_num = i,
-        original = orig_line,
-        new = new_line,
-        type = orig_line == "" and "added" or (new_line == "" and "removed" or "modified")
-      })
-    end
+  -- Add headers
+  for _, line in ipairs(header) do
+    table.insert(left_lines, line)
+  end
+  for _, line in ipairs(header_new) do
+    table.insert(right_lines, line)
   end
   
-  if #changes == 0 then
-    table.insert(test_lines, "ℹ️  No differences detected")
-    table.insert(test_lines, "")
-    table.insert(test_lines, "Press [q] to close")
+  -- Find changed blocks
+  local blocks = find_change_blocks(original_lines, new_lines)
+  
+  if #blocks == 0 then
+    table.insert(left_lines, "ℹ️  No differences detected")
+    table.insert(right_lines, "ℹ️  File is identical")
   else
-    -- Show contextual diff for each change
-    for _, change in ipairs(changes) do
-      local start_context = math.max(1, change.line_num - context_lines)
-      local end_context = math.min(max_lines, change.line_num + context_lines)
-      
-      -- Show context lines before
-      for i = start_context, change.line_num - 1 do
-        if original_lines[i] then
-          table.insert(test_lines, string.format("  %3d    %s", i, original_lines[i]))
-        end
-      end
-      
-      -- Show the actual change
-      if change.type == "modified" then
-        table.insert(test_lines, string.format("  %3d -  %s", change.line_num, change.original))
-        table.insert(test_lines, string.format("  %3d +  %s", change.line_num, change.new))
-      elseif change.type == "removed" then
-        table.insert(test_lines, string.format("  %3d -  %s", change.line_num, change.original))
-      elseif change.type == "added" then
-        table.insert(test_lines, string.format("  %3d +  %s", change.line_num, change.new))
-      end
-      
-      -- Show context lines after
-      for i = change.line_num + 1, end_context do
-        if new_lines[i] then
-          table.insert(test_lines, string.format("  %3d    %s", i, new_lines[i]))
-        end
-      end
-      
-      -- Add separator if there are more changes
-      if change ~= changes[#changes] then
-        table.insert(test_lines, "")
-        table.insert(test_lines, "  ─────────────────────────────────────────")
-        table.insert(test_lines, "")
-      end
+    -- Show files side by side with synchronized diff view
+    -- Left: original file complete
+    -- Right: new file complete
+    
+    -- Add all original lines to left
+    for i, line in ipairs(original_lines) do
+      table.insert(left_lines, string.format("%3d │ %s", i, line))
     end
     
-    table.insert(test_lines, "")
-    table.insert(test_lines, "✅ Changes have been applied successfully")
-    table.insert(test_lines, "")
-    table.insert(test_lines, "Press [q] to close this diff view")
+    -- Add all new lines to right
+    for i, line in ipairs(new_lines) do
+      table.insert(right_lines, string.format("%3d │ %s", i, line))
+    end
+    
+    -- Pad shorter side to match length
+    local max_lines = math.max(#left_lines, #right_lines)
+    while #left_lines < max_lines do
+      table.insert(left_lines, "")
+    end
+    while #right_lines < max_lines do
+      table.insert(right_lines, "")
+    end
   end
   
-  api.nvim_buf_set_lines(state.diff_buffer, 0, -1, false, test_lines)
-  api.nvim_buf_set_option(state.diff_buffer, "modifiable", false)
+  -- Add footer
+  table.insert(left_lines, "")
+  table.insert(right_lines, "")
+  table.insert(left_lines, "Press [q] to close")
+  table.insert(right_lines, "✅ Changes applied!")
   
-  -- Apply syntax highlighting for diff
+  -- Set content to buffers
+  api.nvim_buf_set_lines(state.diff_buffer, 0, -1, false, left_lines)
+  api.nvim_buf_set_lines(state.diff_buffer_new, 0, -1, false, right_lines)
+  
+  -- Make buffers read-only
+  api.nvim_buf_set_option(state.diff_buffer, "modifiable", false)
+  api.nvim_buf_set_option(state.diff_buffer_new, "modifiable", false)
+  
+  -- Apply syntax highlighting for side-by-side diff
   local namespace = api.nvim_create_namespace("claude_diff")
   
-  -- Define highlight groups with more compatible colors
+  -- Define highlight groups for side-by-side view
   vim.cmd([[
-    highlight ClaudeDiffAdded guifg=#50C878 ctermfg=green gui=bold cterm=bold
-    highlight ClaudeDiffRemoved guifg=#FF6B6B ctermfg=red gui=bold cterm=bold
-    highlight ClaudeDiffContext guifg=#A0A0A0 ctermfg=gray
+    highlight ClaudeDiffRemoved guibg=#4A1E1E guifg=#FF6B6B ctermfg=red ctermbg=darkred gui=bold cterm=bold
+    highlight ClaudeDiffAdded guibg=#1E4A1E guifg=#50C878 ctermfg=green ctermbg=darkgreen gui=bold cterm=bold  
+    highlight ClaudeDiffContext guifg=#7C7C7C ctermfg=gray gui=NONE cterm=NONE
     highlight ClaudeDiffHeader guifg=#61AFEF ctermfg=blue gui=bold cterm=bold
     highlight ClaudeDiffSeparator guifg=#5C6370 ctermfg=darkgray
   ]])
   
-  -- Apply highlights to the lines
-  for i, line in ipairs(test_lines) do
-    local line_idx = i - 1  -- 0-based for nvim_buf_add_highlight
+  -- Create diff markers for highlighting
+  local left_highlights = {}
+  local right_highlights = {}
+  
+  -- Simple line-by-line comparison to find changes
+  local max_check = math.max(#original_lines, #new_lines)
+  
+  for i = 1, max_check do
+    local orig = original_lines[i] or ""
+    local new = new_lines[i] or ""
     
-    -- Debug: let's see what we're matching
-    if line:match("^┌") or line:match("^│") or line:match("^└") then
-      -- Header lines (blue)
-      api.nvim_buf_add_highlight(state.diff_buffer, namespace, "ClaudeDiffHeader", line_idx, 0, -1)
-    elseif line:find("%+  ") then
-      -- Added lines (green) - lines containing "+ "
-      api.nvim_buf_add_highlight(state.diff_buffer, namespace, "ClaudeDiffAdded", line_idx, 0, -1)
-    elseif line:find("%-  ") then
-      -- Removed lines (red) - lines containing "- "
-      api.nvim_buf_add_highlight(state.diff_buffer, namespace, "ClaudeDiffRemoved", line_idx, 0, -1)
-    elseif line:match("^  %d+    ") then
-      -- Context lines (gray) - normal context lines
-      api.nvim_buf_add_highlight(state.diff_buffer, namespace, "ClaudeDiffContext", line_idx, 0, -1)
-    elseif line:match("─") then
-      -- Separator lines
-      api.nvim_buf_add_highlight(state.diff_buffer, namespace, "ClaudeDiffSeparator", line_idx, 0, -1)
+    if orig ~= new then
+      if orig ~= "" then
+        left_highlights[i] = "removed"
+      end
+      if new ~= "" then
+        right_highlights[i] = "added"
+      end
     end
   end
   
-  -- Set buffer keymaps (only close since changes are already applied)
-  local opts = { buffer = state.diff_buffer, silent = true }
-  vim.keymap.set("n", "q", "<cmd>close<cr>", opts)
-  vim.keymap.set("n", "<Esc>", "<cmd>close<cr>", opts)
-  vim.keymap.set("n", "<CR>", "<cmd>close<cr>", opts)  -- Enter to close too
+  -- Apply highlights and signs to buffers
+  -- First, apply headers
+  for i = 1, 7 do -- Header lines
+    if i <= #left_lines then
+      api.nvim_buf_add_highlight(state.diff_buffer, namespace, "ClaudeDiffHeader", i-1, 0, -1)
+    end
+    if i <= #right_lines then
+      api.nvim_buf_add_highlight(state.diff_buffer_new, namespace, "ClaudeDiffHeader", i-1, 0, -1)
+    end
+  end
+  
+  -- Apply highlights to content lines
+  for i = 8, #left_lines do -- Skip header lines
+    local line_idx = i - 1
+    local line_num = i - 7 -- Adjust for header offset
+    
+    -- Left buffer highlights
+    if left_highlights[line_num] == "removed" then
+      api.nvim_buf_add_highlight(state.diff_buffer, namespace, "ClaudeDiffRemoved", line_idx, 0, -1)
+    end
+  end
+  
+  for i = 8, #right_lines do -- Skip header lines
+    local line_idx = i - 1
+    local line_num = i - 7 -- Adjust for header offset
+    
+    -- Right buffer highlights
+    if right_highlights[line_num] == "added" then
+      api.nvim_buf_add_highlight(state.diff_buffer_new, namespace, "ClaudeDiffAdded", line_idx, 0, -1)
+    end
+  end
+  
+  -- Set buffer keymaps for both buffers
+  local function close_diff()
+    -- Close diff buffers properly
+    if state.diff_buffer and api.nvim_buf_is_valid(state.diff_buffer) then
+      api.nvim_buf_delete(state.diff_buffer, { force = true })
+    end
+    if state.diff_buffer_new and api.nvim_buf_is_valid(state.diff_buffer_new) then
+      api.nvim_buf_delete(state.diff_buffer_new, { force = true })
+    end
+    
+    -- Close the entire diff tab and return to previous tab
+    pcall(function()
+      vim.cmd("tabclose")
+    end)
+  end
+  
+  -- Set keymaps for both buffers
+  for _, buf in ipairs({state.diff_buffer, state.diff_buffer_new}) do
+    local opts = { buffer = buf, silent = true }
+    vim.keymap.set("n", "q", close_diff, opts)
+    vim.keymap.set("n", "<Esc>", close_diff, opts)
+    vim.keymap.set("n", "<CR>", close_diff, opts)
+  end
+  
+  -- Add synchronized scrolling with improved logic
+  local function sync_scroll()
+    local current_win = api.nvim_get_current_win()
+    local other_win = (current_win == left_win) and right_win or left_win
+    
+    if api.nvim_win_is_valid(other_win) and api.nvim_win_is_valid(current_win) then
+      local cursor = api.nvim_win_get_cursor(current_win)
+      local line = cursor[1]
+      
+      -- Get current window's top line for viewport sync
+      local topline = vim.fn.line('w0', current_win)
+      
+      -- Set the other window to the same line and viewport
+      pcall(function()
+        api.nvim_win_set_cursor(other_win, {line, 0})
+        -- Also sync the viewport (what's visible)
+        api.nvim_win_call(other_win, function()
+          local cmd = string.format("normal! %dzt", topline)
+          vim.cmd(cmd)
+        end)
+      end)
+    end
+  end
+  
+  -- Set up scroll synchronization for both windows  
+  for _, win in ipairs({left_win, right_win}) do
+    local buf = api.nvim_win_get_buf(win)
+    api.nvim_create_autocmd({"CursorMoved", "WinScrolled"}, {
+      buffer = buf,
+      callback = sync_scroll
+    })
+  end
   
   -- Show notification
   vim.notify("🤖 Claude Code applied changes to " .. vim.fn.fnamemodify(diff_data.filename or "unknown", ":t"), vim.log.levels.INFO)
@@ -320,7 +587,10 @@ function M.accept_diff()
   
   -- Close diff view
   if state.diff_buffer and api.nvim_buf_is_valid(state.diff_buffer) then
-    vim.cmd("close")
+    api.nvim_buf_delete(state.diff_buffer, { force = true })
+  end
+  if state.diff_buffer_new and api.nvim_buf_is_valid(state.diff_buffer_new) then
+    api.nvim_buf_delete(state.diff_buffer_new, { force = true })
   end
   
   state.current_diff = nil
@@ -336,7 +606,10 @@ function M.reject_diff()
   
   -- Close diff view
   if state.diff_buffer and api.nvim_buf_is_valid(state.diff_buffer) then
-    vim.cmd("close")
+    api.nvim_buf_delete(state.diff_buffer, { force = true })
+  end
+  if state.diff_buffer_new and api.nvim_buf_is_valid(state.diff_buffer_new) then
+    api.nvim_buf_delete(state.diff_buffer_new, { force = true })
   end
   
   state.current_diff = nil
@@ -412,6 +685,11 @@ local function setup_claude_hooks()
   vim.env.TERM_PROGRAM = "vscode"
   vim.env.GIT_ASKPASS = "/usr/share/code/resources/app/extensions/git/dist/askpass.sh"
   vim.env.OPENCODE_CALLER = "vscode"
+  
+  -- Write port info for bridge script
+  local port_file = "/tmp/claude-diff/nvim-port-" .. vim.fn.getpid()
+  vim.fn.mkdir("/tmp/claude-diff", "p")
+  vim.fn.writefile({tostring(state.config.server_port)}, port_file)
   
   -- First, install the bridge script
   local installer = require("claude-diff.install")
@@ -550,6 +828,11 @@ function M.setup(config)
     callback = function()
       if state.server then
         state.server:close()
+      end
+      -- Clean up port file
+      local port_file = "/tmp/claude-diff/nvim-port-" .. vim.fn.getpid()
+      if vim.fn.filereadable(port_file) == 1 then
+        vim.fn.delete(port_file)
       end
     end,
   })
