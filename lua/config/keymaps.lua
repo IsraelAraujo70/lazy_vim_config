@@ -19,7 +19,7 @@ map("n", "<C-w>", "<cmd>bd<cr>", { desc = "❌ Close File" })
 -- NAVIGATION - Atalhos para navegação entre arquivos e buffers
 map("n", "<C-p>", "<cmd>Telescope find_files<cr>", { desc = "🔍 Quick Open" })
 map("n", "<C-S-p>", ":", { desc = "⚡ Command Mode" })
-map("n", "<leader>e", "<cmd>Neotree toggle<cr>", { desc = "🌳 Toggle Explorer" })
+map("n", "<leader>E", "<cmd>Neotree toggle<cr>", { desc = "🌳 Toggle Explorer" })
 map("n", "<C-`>", "<cmd>ToggleTerm<cr>", { desc = "💻 Toggle Terminal" })
 
 -- SEARCH & REPLACE - Ferramentas de busca e substituição
@@ -133,7 +133,7 @@ local function show_cheat_sheet()
     "🔍 SEARCH & NAVIGATION (Funcionam):",
     "  Ctrl+P          → Quick Open (Find Files)",
     "  Ctrl+Shift+P    → Command Mode (:)",
-    "  <leader>e       → Toggle File Explorer",
+    "  <leader>E       → Toggle File Explorer",
     "  /               → Find in Current File",
     "  Ctrl+H          → Find & Replace",
     "  :grep texto     → Find in All Files (Neovim)",
