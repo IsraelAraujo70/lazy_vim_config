@@ -22,25 +22,25 @@ class MathCalculator {
   add(a, b) {
     this._validateNumbers(a, b);
     const result = a + b;
-    this._logOperation('ADD', a, b, result);
-    
+    this._logOperation("ADD", a, b, result);
+
     if (this.debug) {
       console.log(`Debug: Addition performed ${a} + ${b} = ${result}`);
     }
-    
+
     return result;
   }
 
   /**
    * Subtraction operation
    * @param {number} a - Minuend
-   * @param {number} b - Subtrahend  
+   * @param {number} b - Subtrahend
    * @returns {number} Difference result
    */
   subtract(a, b) {
     this._validateNumbers(a, b);
     const result = a - b;
-    this._logOperation('SUBTRACT', a, b, result);
+    this._logOperation("SUBTRACT", a, b, result);
     return result;
   }
 
@@ -52,14 +52,14 @@ class MathCalculator {
    */
   multiply(a, b) {
     this._validateNumbers(a, b);
-    
+
     // Fast path optimizations
     if (a === 0 || b === 0) return 0;
     if (a === 1) return b;
     if (b === 1) return a;
-    
+
     const result = a * b;
-    this._logOperation('MULTIPLY', a, b, result);
+    this._logOperation("MULTIPLY", a, b, result);
     return result;
   }
 
@@ -71,14 +71,14 @@ class MathCalculator {
    */
   divide(dividend, divisor) {
     this._validateNumbers(dividend, divisor);
-    
+
     if (divisor === 0) {
-      throw new Error('Division by zero is not allowed');
+      throw new Error("Division by zero is not allowed");
     }
-    
+
     const result = dividend / divisor;
     const roundedResult = parseFloat(result.toFixed(this.precision));
-    this._logOperation('DIVIDE', dividend, divisor, roundedResult);
+    this._logOperation("DIVIDE", dividend, divisor, roundedResult);
     return roundedResult;
   }
 
@@ -90,14 +90,16 @@ class MathCalculator {
    */
   power(base, exponent) {
     this._validateNumbers(base, exponent);
-    
+
     if (exponent === 0) return 1;
     if (base === 0 && exponent < 0) {
-      throw new Error('Cannot raise 0 to negative power');
+      throw new Error("Cannot raise 0 to negative power");
     }
-    
+    if (base === 1) return 1; // Optimization: 1^n is always 1
+    if (base === -1) return exponent % 2 === 0 ? 1 : -1; // Optimization for -1
+
     const result = Math.pow(base, exponent);
-    this._logOperation('POWER', base, exponent, result);
+    this._logOperation("POWER", base, exponent, result);
     return result;
   }
 
@@ -108,17 +110,17 @@ class MathCalculator {
    */
   factorial(n) {
     if (!Number.isInteger(n) || n < 0) {
-      throw new Error('Factorial requires non-negative integer');
+      throw new Error("Factorial requires non-negative integer");
     }
-    
+
     if (n <= 1) return 1;
-    
+
     let result = 1;
     for (let i = 2; i <= n; i++) {
       result *= i;
     }
-    
-    this._logOperation('FACTORIAL', n, null, result);
+
+    this._logOperation("FACTORIAL", n, null, result);
     return result;
   }
 
@@ -128,17 +130,17 @@ class MathCalculator {
    * @returns {number} Square root result
    */
   sqrt(n) {
-    if (typeof n !== 'number' || n < 0) {
-      throw new Error('Square root requires non-negative number');
+    if (typeof n !== "number" || n < 0) {
+      throw new Error("Square root requires non-negative number");
     }
-    
+
     if (n === 0 || n === 1) {
-      this._logOperation('SQRT', n, null, n);
+      this._logOperation("SQRT", n, null, n);
       return n;
     }
-    
+
     const result = Math.sqrt(n);
-    this._logOperation('SQRT', n, null, result);
+    this._logOperation("SQRT", n, null, result);
     return result;
   }
 
@@ -150,10 +152,10 @@ class MathCalculator {
    * @returns {number} Area result
    */
   circleArea(radius) {
-    if (typeof radius !== 'number' || radius < 0) {
-      throw new Error('Radius must be a positive number');
+    if (typeof radius !== "number" || radius < 0) {
+      throw new Error("Radius must be a positive number");
     }
-    
+
     const result = Math.PI * radius * radius;
     console.log(`🔵 Circle area: π × ${radius}² = ${result.toFixed(4)}`);
     return result;
@@ -167,13 +169,15 @@ class MathCalculator {
    */
   rectanglePerimeter(width, height) {
     this._validateNumbers(width, height);
-    
+
     if (width <= 0 || height <= 0) {
-      throw new Error('Dimensions must be positive');
+      throw new Error("Dimensions must be positive");
     }
-    
+
     const result = 2 * (width + height);
-    console.log(`📐 Rectangle perimeter: 2 × (${width} + ${height}) = ${result}`);
+    console.log(
+      `📐 Rectangle perimeter: 2 × (${width} + ${height}) = ${result}`,
+    );
     return result;
   }
 
@@ -215,6 +219,49 @@ class MathCalculator {
     return result;
   }
 
+  // === STATISTICAL METHODS ===
+
+  /**
+   * Calculate mean (average) of numbers
+   * @param {number[]} numbers - Array of numbers
+   * @returns {number} Mean value
+   */
+  mean(numbers) {
+    if (!Array.isArray(numbers) || numbers.length === 0) {
+      throw new Error("Mean requires non-empty array of numbers");
+    }
+    
+    const sum = numbers.reduce((acc, num) => {
+      this._validateNumbers(num);
+      return acc + num;
+    }, 0);
+    
+    const result = sum / numbers.length;
+    console.log(`📊 Mean of [${numbers.join(", ")}] = ${result.toFixed(4)}`);
+    return result;
+  }
+
+  /**
+   * Calculate median of numbers
+   * @param {number[]} numbers - Array of numbers
+   * @returns {number} Median value
+   */
+  median(numbers) {
+    if (!Array.isArray(numbers) || numbers.length === 0) {
+      throw new Error("Median requires non-empty array of numbers");
+    }
+    
+    const sorted = [...numbers].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    
+    const result = sorted.length % 2 === 0
+      ? (sorted[mid - 1] + sorted[mid]) / 2
+      : sorted[mid];
+    
+    console.log(`📊 Median of [${numbers.join(", ")}] = ${result}`);
+    return result;
+  }
+
   // === UTILITY METHODS ===
 
   /**
@@ -240,10 +287,10 @@ class MathCalculator {
    */
   setPrecision(precision) {
     if (!Number.isInteger(precision) || precision < 0) {
-      throw new Error('Precision must be non-negative integer');
+      throw new Error("Precision must be non-negative integer");
     }
     if (precision > 15) {
-      console.warn('High precision values may cause floating point errors');
+      console.warn("High precision values may cause floating point errors");
     }
     this.precision = precision;
     console.log(`Precision set to ${precision} decimal places`);
@@ -257,8 +304,8 @@ class MathCalculator {
    */
   _validateNumbers(...numbers) {
     for (const num of numbers) {
-      if (typeof num !== 'number' || !isFinite(num)) {
-        throw new Error('All parameters must be finite numbers');
+      if (typeof num !== "number" || !isFinite(num)) {
+        throw new Error("All parameters must be finite numbers");
       }
     }
   }
@@ -272,11 +319,11 @@ class MathCalculator {
       operation,
       operands: b !== null ? [a, b] : [a],
       result,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
-    
+
     this.history.push(entry);
-    
+
     const symbol = this._getOperationSymbol(operation);
     const operandStr = b !== null ? `${a} ${symbol} ${b}` : `${symbol}(${a})`;
     console.log(`🧮 ${operandStr} = ${result}`);
@@ -288,13 +335,13 @@ class MathCalculator {
    */
   _getOperationSymbol(operation) {
     const symbols = {
-      ADD: '+',
-      SUBTRACT: '-', 
-      MULTIPLY: '×',
-      DIVIDE: '÷',
-      POWER: '^',
-      FACTORIAL: '!',
-      SQRT: '√'
+      ADD: "+",
+      SUBTRACT: "-",
+      MULTIPLY: "×",
+      DIVIDE: "÷",
+      POWER: "^",
+      FACTORIAL: "!",
+      SQRT: "√",
     };
     return symbols[operation] || operation;
   }
@@ -320,5 +367,6 @@ module.exports = {
   subtrair,
   multiplicar,
   dividir,
-  fatorial
+  fatorial,
 };
+
