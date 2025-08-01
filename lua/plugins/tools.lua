@@ -146,42 +146,6 @@ return {
     },
   },
 
-  -- File explorer
-  {
-    "nvim-neo-tree/neo-tree.nvim",
-    opts = {
-      filesystem = {
-        filtered_items = {
-          visible = true,
-          hide_dotfiles = false,
-          hide_gitignored = false,
-          hide_by_name = {
-            "node_modules",
-            ".git",
-            ".DS_Store",
-            "vendor",
-          },
-        },
-        follow_current_file = {
-          enabled = true,
-        },
-        use_libuv_file_watcher = true,
-      },
-      window = {
-        width = 30,
-        mappings = {
-          ["o"] = "open",
-          ["oc"] = "noop",
-          ["od"] = "noop",
-          ["og"] = "noop",
-          ["om"] = "noop",
-          ["on"] = "noop",
-          ["os"] = "noop",
-          ["ot"] = "noop",
-        },
-      },
-    },
-  },
 
   -- Better quickfix
   {
