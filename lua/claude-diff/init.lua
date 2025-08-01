@@ -37,13 +37,32 @@ local handle_http_request, show_diff_view, generate_diff_content, find_change_bl
 -- Find available port starting from base port
 local function find_available_port(base_port)
   for port = base_port, base_port + 100 do
-    local server = uv.new_tcp()
-    local ok = pcall(function()
-      server:bind("127.0.0.1", port)
-      server:close()
-    end)
-    if ok then
-      return port
+    -- Check if port is already in use by existing Neovim instances
+    local port_file = "/tmp/claude-diff/nvim-port-" .. vim.fn.getpid()
+    local port_in_use = false
+    
+    -- Check existing port files
+    local port_files = vim.fn.glob("/tmp/claude-diff/nvim-port-*", false, true)
+    for _, file in ipairs(port_files) do
+      if vim.fn.filereadable(file) == 1 then
+        local existing_port = tonumber(vim.fn.readfile(file)[1])
+        if existing_port == port then
+          port_in_use = true
+          break
+        end
+      end
+    end
+    
+    if not port_in_use then
+      -- Test if we can actually bind to this port
+      local server = uv.new_tcp()
+      local ok = pcall(function()
+        server:bind("127.0.0.1", port)
+        server:close()
+      end)
+      if ok then
+        return port
+      end
     end
   end
   return nil

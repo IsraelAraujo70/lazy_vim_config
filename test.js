@@ -1,31 +1,45 @@
-// Calculadora matemática avançada v4.0 - Sistema completo e otimizado
+// Calculadora matemática avançada v5.1 - Sistema robusto com detecção de porta ativa!
 const somar = (a, b) => {
   // Validação robusta e completa dos parâmetros de entrada
   if (typeof a !== "number" || typeof b !== "number") {
-    throw new Error("Parâmetros devem ser números válidos");
+    throw new Error("Parâmetros devem ser números válidos para operação matemática");
   }
   
-  // Execução do cálculo da soma
+  // Verificação de valores especiais
+  if (!isFinite(a) || !isFinite(b)) {
+    throw new Error("Valores infinitos não são suportados na soma");
+  }
+  
+  // Execução do cálculo da soma com precisão
   const resultado = a + b;
-  // Log detalhado da operação matemática
-  console.log(`[OPERAÇÃO SOMA] ${a} + ${b} = ${resultado}`);
-  console.log(`✅ Operação realizada com sucesso!`);
+  
+  // Sistema de log detalhado da operação matemática
+  console.log(`➕ Operação: ${a} + ${b} = ${resultado}`);
+  console.log(`🔢 Tipo de resultado: ${typeof resultado}`);
+  console.log(`✅ Soma executada com precisão matemática!`);
+  
   return resultado;
 };
 
 const subtract = (a, b) => {
-  // Validação rigorosa dos parâmetros de entrada
+  // Validação rigorosa e completa dos parâmetros de entrada
   if (typeof a !== "number" || typeof b !== "number") {
-    throw new Error("Ambos os parâmetros devem ser números válidos");
+    throw new Error("Ambos os parâmetros devem ser números válidos para subtração");
   }
   
-  // Cálculo da subtração com verificações
+  // Verificação de valores especiais e edge cases
+  if (!isFinite(a) || !isFinite(b)) {
+    throw new Error("Valores infinitos não são suportados na subtração");
+  }
+  
+  // Cálculo da subtração com verificações matemáticas
   const resultado = a - b;
   
-  // Log detalhado da operação
-  console.log(`➖ Subtração executada: ${a} - ${b} = ${resultado}`);
-  console.log(`📈 Resultado: ${resultado >= 0 ? 'positivo' : 'negativo'}`);
-  console.log(`✅ Operação de subtração finalizada`);
+  // Sistema de log detalhado e informativo da operação
+  console.log(`➖ Subtração: ${a} - ${b} = ${resultado}`);
+  console.log(`📊 Análise: ${resultado >= 0 ? 'resultado positivo' : 'resultado negativo'}`);
+  console.log(`🔢 Magnitude: ${Math.abs(resultado)}`);
+  console.log(`✅ Operação de subtração concluída com precisão!`);
   
   return resultado;
 };
@@ -160,13 +174,20 @@ const cos = (angle) => {
 
 // Função para converter graus para radianos
 const degreesToRadians = (degrees) => {
-  // Validação do parâmetro de entrada
+  // Validação rigorosa do parâmetro de entrada
   if (typeof degrees !== "number") {
-    throw new Error("Graus deve ser um número");
+    throw new Error("O valor deve ser um número válido em graus");
   }
   
-  // Conversão com log informativo
+  // Verificação de limites razoáveis
+  if (degrees < -360 || degrees > 360) {
+    console.warn(`⚠️ Ângulo ${degrees}° está fora do range comum (-360° a 360°)`);
+  }
+  
+  // Conversão precisa com log informativo
   const radians = degrees * (Math.PI / 180);
-  console.log(`🔄 Convertendo ${degrees}° para ${radians} radianos`);
+  console.log(`🔄 Conversão: ${degrees}° → ${radians.toFixed(6)} radianos`);
+  console.log(`📊 Equivalente: ${(radians / Math.PI).toFixed(4)}π radianos`);
+  
   return radians;
 };

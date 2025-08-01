@@ -16,7 +16,25 @@ O plugin já está configurado no seu LazyVim. Na primeira vez que carregar, ele
 
 1. ✅ Instalar automaticamente o script bridge em `~/.local/bin`
 2. ✅ Configurar os hooks do Claude Code em `~/.claude/settings.json`
-3. ✅ Iniciar o servidor HTTP na porta 38547
+3. ✅ Iniciar o servidor HTTP em porta dinâmica (38500-38600)
+
+### Instalação Manual do Bridge Script
+
+Se precisar reinstalar ou atualizar o bridge script manualmente:
+
+```bash
+# Copiar e tornar executável
+cp ~/.config/nvim/lua/claude-diff/bridge.sh ~/.local/bin/nvim-claude-bridge && chmod +x ~/.local/bin/nvim-claude-bridge
+```
+
+### Verificar instalação
+```bash
+# Verificar se o script está no PATH
+which nvim-claude-bridge
+
+# Testar se funciona
+echo '{}' | nvim-claude-bridge
+```
 
 ## Comandos Disponíveis
 
@@ -70,7 +88,7 @@ No seu `lua/plugins/claude-diff.lua`:
   name = "claude-diff.nvim", 
   config = function()
     require("claude-diff").setup({
-      server_port = 38547,           -- Porta do servidor HTTP
+      server_port_base = 38500,     -- Porta base (encontra automaticamente)
       auto_setup_hooks = true,      -- Configurar hooks automaticamente  
       keymaps = {
         accept = "<leader>ca",
@@ -109,6 +127,25 @@ source ~/.bashrc
 ### Ver logs do servidor
 O plugin mostra notificações quando recebe diffs ou há erros.
 
+## Recursos Avançados
+
+### Sistema de Porta Dinâmica
+- 🚀 **Múltiplas instâncias** - Cada Neovim usa sua própria porta
+- 🛡️ **Tolerante a crashes** - Sessões não interferem entre si
+- 🔄 **Auto-descoberta** - Bridge encontra a instância correta automaticamente
+- 🧹 **Auto-limpeza** - Remove sessões mortas automaticamente
+
+### Detecção Inteligente de Diretório
+- 📂 **Projeto correto** - Bridge identifica o Neovim do diretório atual
+- 🎯 **Sem conflitos** - Mudanças vão para o projeto certo
+- 📍 **Fallback inteligente** - Usa qualquer instância se não encontrar no diretório
+
+### Diff Viewer Profissional
+- 👀 **Side-by-side** - Original à esquerda, modificado à direita
+- 🎨 **Cores intuitivas** - Verde para adições, vermelho para remoções
+- 🔄 **Scroll sincronizado** - Navegação conjunta entre painéis
+- 💾 **Portável** - Script incluído na config do Neovim
+
 ## Vantagens
 
 ✅ **Controle total** - Você vê e aprova cada mudança  
@@ -116,5 +153,7 @@ O plugin mostra notificações quando recebe diffs ou há erros.
 ✅ **Não modifica Claude Code** - Usa API oficial de hooks  
 ✅ **Instalação automática** - Setup transparente  
 ✅ **Funciona com qualquer comando** - `claude`, `:ClaudeCode`, etc.  
+✅ **Múltiplos projetos** - Cada instância independente
+✅ **Portável** - Leva a config para qualquer máquina
 
 Esta implementação é **muito superior** à extensão VSCode porque você vê as mudanças ANTES delas serem aplicadas, não depois.
