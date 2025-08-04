@@ -27,9 +27,9 @@ return {
     opts = {
       formatters_by_ft = {
         javascript = { "prettier" },
-        typescript = { "prettier" },
+        -- typescript = { "prettier" }, -- Desabilitado
         javascriptreact = { "prettier" },
-        typescriptreact = { "prettier" },
+        -- typescriptreact = { "prettier" }, -- Desabilitado
         json = { "prettier" },
         html = { "prettier" },
         css = { "prettier" },

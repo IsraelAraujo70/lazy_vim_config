@@ -14,6 +14,7 @@
  * Final Integration Test: Should trigger OpenCode hooks automatically
  * Testing NOW: OpenCode diff integration should work!
  * After OpenCode restart: Should trigger hooks correctly now
+ * Directory Detection Test: Bridge should find correct Neovim instance
  */
 
 class MathCalculator {
