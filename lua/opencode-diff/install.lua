@@ -63,28 +63,78 @@ get_original_content() {
     return 0
 }
 
-# Function to find active Neovim port
+# Function to find active Neovim port for current directory
 find_nvim_port() {
-    # Method 1: Check port files in /tmp/opencode-diff
+    local current_dir="$PWD"
+    
+    # If we have a file path, use its directory
+    if [ -n "$FILE_PATH" ] && [ -f "$FILE_PATH" ]; then
+        current_dir=$(dirname "$(realpath "$FILE_PATH")")
+    fi
+    
+    # Method 1: Check port files in /tmp/opencode-diff with directory matching
     for port_file in /tmp/opencode-diff/nvim-port-*; do
         if [ -f "$port_file" ]; then
             # Read port info JSON
             port_info=$(cat "$port_file" 2>/dev/null)
             if [ -n "$port_info" ]; then
-                # Extract port using basic JSON parsing
+                # Extract port and cwd using basic JSON parsing
                 port=$(echo "$port_info" | grep -o '"port":[0-9]*' | cut -d: -f2)
+                nvim_cwd=$(echo "$port_info" | grep -o '"cwd":"[^"]*"' | cut -d'"' -f4)
+                pid=$(echo "$port_info" | grep -o '"pid":[0-9]*' | cut -d: -f2)
+                
                 if echo "$port" | grep -q '^[0-9]\+$' && [ "$port" -gt 1024 ] && [ "$port" -lt 65536 ]; then
-                    # Test if the port is actually active with health check
-                    if curl -s --connect-timeout 1 --max-time 2 "http://127.0.0.1:$port/health" >/dev/null 2>&1; then
-                        echo "$port"
-                        return 0
+                    # Check if process is still alive
+                    if [ -n "$pid" ] && ! kill -0 "$pid" 2>/dev/null; then
+                        # Process is dead, clean up
+                        rm -f "$port_file"
+                        continue
+                    fi
+                    
+                    # Check if this Neovim is in current directory or parent
+                    if [ -n "$nvim_cwd" ] && ([ "$nvim_cwd" = "$current_dir" ] || [ "${current_dir#$nvim_cwd}" != "$current_dir" ]); then
+                        # Test if the port is actually active with health check
+                        if curl -s --connect-timeout 1 --max-time 2 "http://127.0.0.1:$port/health" >/dev/null 2>&1; then
+                            echo "$port"
+                            return 0
+                        else
+                            # Port not responding, clean up
+                            rm -f "$port_file"
+                        fi
                     fi
                 fi
             fi
         fi
     done
     
-    # Method 2: Check legacy claude-diff ports for compatibility
+    # Method 2: Fallback - try any active opencode-diff instance
+    for port_file in /tmp/opencode-diff/nvim-port-*; do
+        if [ -f "$port_file" ]; then
+            port_info=$(cat "$port_file" 2>/dev/null)
+            if [ -n "$port_info" ]; then
+                port=$(echo "$port_info" | grep -o '"port":[0-9]*' | cut -d: -f2)
+                pid=$(echo "$port_info" | grep -o '"pid":[0-9]*' | cut -d: -f2)
+                
+                if echo "$port" | grep -q '^[0-9]\+$' && [ "$port" -gt 1024 ] && [ "$port" -lt 65536 ]; then
+                    # Check if process is still alive
+                    if [ -n "$pid" ] && ! kill -0 "$pid" 2>/dev/null; then
+                        rm -f "$port_file"
+                        continue
+                    fi
+                    
+                    # Test if the port is actually active
+                    if curl -s --connect-timeout 1 --max-time 2 "http://127.0.0.1:$port/health" >/dev/null 2>&1; then
+                        echo "$port"
+                        return 0
+                    else
+                        rm -f "$port_file"
+                    fi
+                fi
+            fi
+        fi
+    done
+    
+    # Method 3: Check legacy claude-diff ports for compatibility
     for port_file in /tmp/claude-diff/nvim-port-*; do
         if [ -f "$port_file" ]; then
             port=$(cat "$port_file" 2>/dev/null)
@@ -97,7 +147,7 @@ find_nvim_port() {
         fi
     done
     
-    # Method 3: Scan common port ranges
+    # Method 4: Scan common port ranges
     for port in $(seq 38600 38700) $(seq 38500 38600); do
         if curl -s --connect-timeout 0.5 --max-time 1 "http://127.0.0.1:$port/health" >/dev/null 2>&1; then
             echo "$port"
@@ -105,7 +155,7 @@ find_nvim_port() {
         fi
     done
     
-    # Method 4: Use netstat/ss to find nvim processes (if available)
+    # Method 5: Use netstat/ss to find nvim processes (if available)
     if command -v ss >/dev/null 2>&1; then
         nvim_ports=$(ss -tlnp 2>/dev/null | grep nvim | grep -oE ':[0-9]+' | cut -d: -f2 | head -1)
         if [ -n "$nvim_ports" ] && echo "$nvim_ports" | grep -q '^[0-9]\+$'; then
