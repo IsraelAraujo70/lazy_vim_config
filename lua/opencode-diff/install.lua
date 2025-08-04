@@ -24,15 +24,17 @@ local function get_bridge_path()
   return local_bin .. "/nvim-opencode-bridge"
 end
 
--- Bridge script content with dynamic port discovery
+-- Smart Bridge script content with git-based file discovery
 local function get_bridge_script_content()
   return [[#!/bin/bash
 
 # OpenCode to Neovim Bridge Script
-# Automatically discovers active Neovim instances and sends file changes
+# Receives file path as first argument from OpenCode hooks
 
-FILE_PATH="$OPENCODE_FILE"
 ACTION="$OPENCODE_ACTION"
+
+# Get file path from command line argument (OpenCode passes $FILE as argument)
+FILE_PATH="$1"
 
 # Exit if no file specified
 if [ -z "$FILE_PATH" ] || [ ! -f "$FILE_PATH" ]; then

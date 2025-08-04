@@ -906,7 +906,8 @@ local function setup_opencode_hooks()
     end
   end
   
-  local opencode_config_file = vim.fn.getcwd() .. "/opencode.json"
+  -- OpenCode ALWAYS uses global config, never local
+  local opencode_config_file = os.getenv("HOME") .. "/.config/opencode/opencode.json"
   
   -- Read existing config or create new
   local config = {}
@@ -941,9 +942,8 @@ local function setup_opencode_hooks()
   
   local hook_config = {
     {
-      command = {bridge_path},
+      command = {bridge_path, "$FILE"},
       environment = {
-        OPENCODE_FILE = "$FILE",
         OPENCODE_ACTION = "edited"
       }
     }
@@ -956,6 +956,11 @@ local function setup_opencode_hooks()
   
   -- Write config back
   local json_content = vim.json.encode(config)
+  
+  -- Ensure global config directory exists
+  local config_dir = vim.fn.fnamemodify(opencode_config_file, ":h")
+  vim.fn.mkdir(config_dir, "p")
+  
   vim.fn.writefile(vim.split(json_content, "\n"), opencode_config_file)
   
   vim.notify("📝 OpenCode hooks configured automatically in " .. opencode_config_file, vim.log.levels.INFO)
