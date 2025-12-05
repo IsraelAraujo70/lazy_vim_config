@@ -26,6 +26,9 @@ return {
   -- JSON support
   { import = "lazyvim.plugins.extras.lang.json" },
 
+  -- Python support
+  { import = "lazyvim.plugins.extras.lang.python" },
+
   -- Tailwind CSS support (removido temporariamente - extras mudaram)
   -- { import = "lazyvim.plugins.extras.lsp.tailwindcss" },
 
@@ -119,6 +122,7 @@ return {
         "json",
         "yaml",
         "sql",
+        "python",
       })
     end,
   },
