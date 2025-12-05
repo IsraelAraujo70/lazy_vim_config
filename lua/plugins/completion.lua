@@ -312,50 +312,46 @@ return {
     end,
   },
 
-  -- AI-powered completion (Codeium) - volta para versão VimScript que funciona
+  -- AI-powered completion (GitHub Copilot)
+  -- Desabilitar o copilot.lua do LazyVim para evitar conflito
+  { "zbirenbaum/copilot.lua", enabled = false },
+  { "zbirenbaum/copilot-cmp", enabled = false },
+
+  -- Usar github/copilot.vim (mais estável e oficial)
   {
-    "Exafunction/codeium.vim",
-    event = "BufEnter",
+    "github/copilot.vim",
+    event = "InsertEnter",
     config = function()
-      -- Disable default <Tab> mapping to avoid conflicts
-      vim.g.codeium_disable_bindings = 1
-      
-      -- 🤖 CODEIUM - IGUAL VSCODE COPILOT
-      
-      -- Ctrl+G = Aceitar sugestão (como você pediu!)
-      vim.keymap.set('i', '<C-g>', function()
-        return vim.fn['codeium#Accept']()
-      end, { expr = true, silent = true, desc = "Accept Codeium" })
-      
-      -- Tab também aceita (padrão universal)
-      vim.keymap.set('i', '<Tab>', function()
-        if vim.fn['codeium#GetStatusString']() ~= '' then
-          return vim.fn['codeium#Accept']()
-        else
-          return '<Tab>'
-        end
-      end, { expr = true, silent = true, desc = "Accept Codeium or Tab" })
-      
-      -- Ctrl+] = Próxima sugestão (igual VSCode)
-      vim.keymap.set('i', '<C-]>', function()
-        return vim.fn['codeium#CycleCompletions'](1)
-      end, { expr = true, silent = true, desc = "Next Codeium suggestion" })
-      
-      -- Ctrl+[ = Sugestão anterior (igual VSCode)
-      vim.keymap.set('i', '<C-[>', function()
-        return vim.fn['codeium#CycleCompletions'](-1)
-      end, { expr = true, silent = true, desc = "Previous Codeium suggestion" })
-      
-      -- Escape = Rejeitar sugestão (igual VSCode)
-      vim.keymap.set('i', '<Esc>', function()
-        vim.fn['codeium#Clear']()
-        return '<Esc>'
-      end, { expr = true, silent = true, desc = "Reject Codeium and exit" })
-      
-      -- Management commands
-      vim.keymap.set('n', '<leader>cs', '<cmd>Codeium Auth<cr>', { desc = "Codeium: Authenticate" })
-      vim.keymap.set('n', '<leader>cd', '<cmd>Codeium Disable<cr>', { desc = "Codeium: Disable" })
-      vim.keymap.set('n', '<leader>ce', '<cmd>Codeium Enable<cr>', { desc = "Codeium: Enable" })
+      -- Especificar o node command explicitamente (Copilot exige Node 22+)
+      vim.g.copilot_node_command = vim.fn.expand("~/.nvm/versions/node/v22.15.0/bin/node")
+
+      -- Desabilitar tab mapping padrão (para não conflitar com completion)
+      vim.g.copilot_no_tab_map = true
+      vim.g.copilot_assume_mapped = true
+
+      -- Filetypes desabilitados
+      vim.g.copilot_filetypes = {
+        ["*"] = true,
+        yaml = false,
+        markdown = false,
+        help = false,
+        gitcommit = false,
+        gitrebase = false,
+        hgcommit = false,
+        svn = false,
+        cvs = false,
+      }
+
+      -- Keymaps para aceitar sugestões
+      vim.keymap.set("i", "<C-g>", 'copilot#Accept("\\<CR>")', {
+        expr = true,
+        replace_keycodes = false,
+        silent = true,
+        desc = "Accept Copilot suggestion",
+      })
+      vim.keymap.set("i", "<C-]>", "<Plug>(copilot-next)", { desc = "Next Copilot suggestion" })
+      vim.keymap.set("i", "<C-[>", "<Plug>(copilot-previous)", { desc = "Previous Copilot suggestion" })
+      vim.keymap.set("i", "<C-e>", "<Plug>(copilot-dismiss)", { desc = "Dismiss Copilot suggestion" })
     end,
   },
 

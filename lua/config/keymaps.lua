@@ -27,6 +27,26 @@ map("n", "<C-f>", "/", { desc = "🔍 Find in File" })
 map("n", "<C-h>", "<cmd>lua require('spectre').toggle()<cr>", { desc = "🔄 Find & Replace" })
 map("n", "<C-S-f>", "<cmd>Telescope live_grep<cr>", { desc = "🔍 Find in Files" })
 
+-- MGREP - Semantic grep (usar mgrep como padrão)
+map("n", "<leader>sg", function()
+  local query = vim.fn.input("mgrep: ")
+  if query ~= "" then
+    vim.cmd("terminal mgrep " .. vim.fn.shellescape(query))
+  end
+end, { desc = "🔍 Semantic Grep (mgrep)" })
+
+map("n", "<leader>sG", function()
+  local query = vim.fn.input("mgrep: ")
+  local path = vim.fn.input("Path (default: .): ")
+  if query ~= "" then
+    local cmd = "terminal mgrep " .. vim.fn.shellescape(query)
+    if path ~= "" then
+      cmd = cmd .. " " .. vim.fn.shellescape(path)
+    end
+    vim.cmd(cmd)
+  end
+end, { desc = "🔍 Semantic Grep with Path" })
+
 -- EDIT OPERATIONS - Operações de edição e manipulação de texto
 map("v", "<C-c>", '"+y', { desc = "📋 Copy" })
 map({ "n", "v", "i" }, "<C-v>", '"+p', { desc = "📋 Paste" })
@@ -122,115 +142,44 @@ map({ "i", "n" }, "<esc>", "<cmd>noh<cr><esc>", { desc = "🚫 Clear Search" })
 -- Função para mostrar cheat sheet
 local function show_cheat_sheet()
   local cheat_content = {
-    "🎯 NEOVIM CHEAT SHEET - APRENDA NEOVIM!",
-    "=========================================",
+    "NEOVIM CHEAT SHEET                              :Ch | <leader>ch",
+    "================================================================",
     "",
-    "📁 FILE OPERATIONS (Funcionam):",
-    "  Ctrl+N          → New File",
-    "  Ctrl+S          → Save File",
-    "  Ctrl+W          → Close File",
+    "COPILOT (AI)              |  ARQUIVOS",
+    "  Ctrl+G  Aceitar         |    Ctrl+S  Salvar",
+    "  Ctrl+]  Proxima         |    Ctrl+P  Buscar arquivo",
+    "  Ctrl+[  Anterior        |    Ctrl+W  Fechar buffer",
+    "  Ctrl+E  Dispensar       |    <leader>E  File Explorer",
     "",
-    "🔍 SEARCH & NAVIGATION (Funcionam):",
-    "  Ctrl+P          → Quick Open (Find Files)",
-    "  Ctrl+Shift+P    → Command Mode (:)",
-    "  <leader>E       → Toggle File Explorer",
-    "  /               → Find in Current File",
-    "  Ctrl+H          → Find & Replace",
-    "  :grep texto     → Find in All Files (Neovim)",
-    "  Ctrl+`          → Toggle Terminal",
+    "NAVEGACAO                 |  BUSCA",
+    "  w/b     Palavra +/-     |    /texto   Buscar no arquivo",
+    "  0/$     Inicio/Fim      |    n/N      Proximo/Anterior",
+    "  gg/G    Topo/Final      |    *        Buscar palavra cursor",
+    "  %       Par correspondente   Ctrl+H  Find & Replace",
     "",
-    "✂️ EDIT OPERATIONS (Funcionam):",
-    "  Ctrl+C          → Copy (Visual mode)",
-    "  Ctrl+V          → Paste",
-    "  Ctrl+X          → Cut (Visual mode)",
-    "  Ctrl+Z          → Undo",
-    "  Ctrl+Y          → Redo",
-    "  Ctrl+A          → Select All",
+    "EDICAO                    |  LSP/CODE",
+    "  i/a     Insert antes/depois  gd      Go to Definition",
+    "  o/O     Nova linha +/-  |    gr      References",
+    "  yy/dd   Copiar/Cortar linha  K       Documentacao",
+    "  p/P     Colar depois/antes   F2      Rename",
+    "  u       Undo            |    Ctrl+.  Code Actions",
+    "  Ctrl+R  Redo            |    S-A-F   Format",
     "",
-    "🔄 MOVE & ORGANIZE:",
-    "  Alt+Up/Down     → Move Line Up/Down",
-    "  Ctrl+_          → Toggle Comment",
-    "  < / >           → Indent Left/Right (Visual)",
+    "VISUAL MODE               |  MOVIMENTACAO",
+    "  v       Selecao caractere    Alt+Up/Down  Mover linha",
+    "  V       Selecao linha   |    </> (visual) Indent",
+    "  Ctrl+V  Selecao bloco   |    Ctrl+/  Comentar",
     "",
-    "🛠️ DEVELOPMENT:",
-    "  gd              → Go to Definition",
-    "  gr              → Find References",
-    "  K               → Show Documentation",
-    "  F2              → Rename Symbol",
-    "  Ctrl+.          → Code Actions",
-    "  Shift+Alt+F     → Format Document",
+    "TEXT OBJECTS (usar com d/c/y)",
+    "  ciw     Change inner word    ci\"     Change inner quotes",
+    "  di(     Delete inner ()  |    da{     Delete around {}",
+    "  yip     Yank inner paragraph",
     "",
-    "📚 COMANDOS BÁSICOS NEOVIM - APRENDA!",
-    "=====================================",
+    "COMANDOS                  |  SPLITS",
+    "  :w :q :wq :q!           |    :sp/:vsp  Horizontal/Vertical",
+    "  .       Repetir comando |    Ctrl+W + h/j/k/l  Navegar",
     "",
-    "🚀 INSERÇÃO DE TEXTO:",
-    "  i               → Insert antes do cursor",
-    "  a               → Insert depois do cursor",
-    "  o               → Nova linha abaixo + insert",
-    "  O               → Nova linha acima + insert",
-    "  A               → Insert no final da linha",
-    "  I               → Insert no início da linha",
-    "",
-    "📋 COPIAR/COLAR (Neovim nativo):",
-    "  yy              → Copiar linha inteira",
-    "  y{motion}       → Copiar movimento (ex: y3j)",
-    "  p               → Colar depois do cursor",
-    "  P               → Colar antes do cursor",
-    "  dd              → Cortar linha inteira",
-    "  d{motion}       → Cortar movimento",
-    "",
-    "🧭 NAVEGAÇÃO RÁPIDA:",
-    "  w               → Próxima palavra",
-    "  b               → Palavra anterior",
-    "  e               → Final da palavra",
-    "  0               → Início da linha",
-    "  $               → Final da linha",
-    "  gg              → Início do arquivo",
-    "  G               → Final do arquivo",
-    "  {número}G       → Ir para linha (ex: 50G)",
-    "  %               → Ir para parêntese/chave correspondente",
-    "",
-    "🔍 BUSCA NATIVA:",
-    "  /texto          → Buscar 'texto' para frente",
-    "  ?texto          → Buscar 'texto' para trás",
-    "  n               → Próximo resultado",
-    "  N               → Resultado anterior",
-    "  *               → Buscar palavra sob cursor",
-    "",
-    "🎯 SELEÇÃO VISUAL:",
-    "  v               → Visual mode (caracteres)",
-    "  V               → Visual Line mode (linhas)",
-    "  Ctrl+v          → Visual Block mode (colunas)",
-    "",
-    "🔄 REPETIR E DESFAZER:",
-    "  .               → Repetir último comando",
-    "  u               → Undo",
-    "  Ctrl+r          → Redo",
-    "",
-    "⚙️ COMANDOS ÚTEIS:",
-    "  :w              → Salvar arquivo",
-    "  :q              → Fechar arquivo",
-    "  :wq             → Salvar e fechar",
-    "  :q!             → Fechar sem salvar",
-    "  :e arquivo      → Abrir arquivo",
-    "  :sp             → Split horizontal",
-    "  :vsp            → Split vertical",
-    "",
-    "💡 DICAS PRO:",
-    "  ci\"             → Change inside quotes",
-    "  di(             → Delete inside parentheses",
-    "  yi{             → Yank inside braces",
-    "  vip             → Select inside paragraph",
-    "  =               → Auto-indent (Visual mode)",
-    "  >>              → Indent linha para direita",
-    "  <<              → Indent linha para esquerda",
-    "",
-    "💻 COMANDOS ESPECIAIS:",
-    "  :ch             → Show This Cheat Sheet",
-    "  <Esc>           → Sair do modo atual/Clear Search",
-    "",
-    "🎓 DICA: Use os comandos nativos para aprender Neovim!",
-    "Press 'q' or <Esc> to close this cheat sheet",
+    "                                           [q] ou [Esc] p/ fechar",
   }
 
   -- Create a new buffer
@@ -239,11 +188,10 @@ local function show_cheat_sheet()
   vim.bo[buf].modifiable = false
   vim.bo[buf].buftype = "nofile"
   vim.bo[buf].bufhidden = "wipe"
-  vim.bo[buf].filetype = "markdown"
 
   -- Calculate window size
-  local width = math.min(80, vim.o.columns - 4)
-  local height = math.min(#cheat_content + 2, vim.o.lines - 6)
+  local width = math.min(66, vim.o.columns - 4)
+  local height = math.min(#cheat_content, vim.o.lines - 4)
   local row = math.floor((vim.o.lines - height) / 2)
   local col = math.floor((vim.o.columns - width) / 2)
 
@@ -255,7 +203,7 @@ local function show_cheat_sheet()
     row = row,
     col = col,
     border = "rounded",
-    title = " 📋 Neovim Cheat Sheet ",
+    title = " Cheat Sheet ",
     title_pos = "center",
   })
 
