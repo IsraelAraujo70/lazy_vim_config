@@ -16,12 +16,11 @@
 ### File Structure
 - **Config files**: `lua/config/` - core Neovim settings
 - **Plugins**: `lua/plugins/` - plugin configurations  
-- **Custom modules**: `lua/claude-diff/` - custom functionality
 
 ### Naming Conventions
 - **Files**: kebab-case (e.g., `terminal-setup.lua`)
-- **Variables**: snake_case (e.g., `state.current_diff`)
-- **Functions**: snake_case (e.g., `show_diff_view`)
+- **Variables**: snake_case (e.g., `local_state`)
+- **Functions**: snake_case (e.g., `setup_function`)
 - **Constants**: UPPER_SNAKE_CASE
 
 ### Import Style
