@@ -23,29 +23,102 @@ map("n", "<leader>E", "<cmd>Neotree toggle<cr>", { desc = "🌳 Toggle Explorer"
 map("n", "<C-`>", "<cmd>ToggleTerm<cr>", { desc = "💻 Toggle Terminal" })
 
 -- SEARCH & REPLACE - Ferramentas de busca e substituição
-map("n", "<C-f>", "/", { desc = "🔍 Find in File" })
 map("n", "<C-h>", "<cmd>lua require('spectre').toggle()<cr>", { desc = "🔄 Find & Replace" })
 map("n", "<C-S-f>", "<cmd>Telescope live_grep<cr>", { desc = "🔍 Find in Files" })
 
 -- MGREP - Semantic grep (usar mgrep como padrão)
+local function parse_mgrep_results(query, path)
+  local cmd = { "mgrep", query }
+  if path and path ~= "" then
+    table.insert(cmd, path)
+  end
+
+  local result = vim.system(cmd, { text = true }):wait()
+  if result.code ~= 0 then
+    vim.notify("mgrep falhou: " .. (result.stderr or ""), vim.log.levels.ERROR)
+    return {}
+  end
+
+  local output = vim.split(result.stdout or "", "\n", { trimempty = true })
+  local items = {}
+  for _, line in ipairs(output) do
+    if line ~= "" and not line:match("%[Process exited") then
+      local file, start_line, end_line, score = line:match("^%.?/?(.+):(%d+)%-(%d+)%s+%(([%d%.]+)%%")
+      if file and start_line and end_line then
+        table.insert(items, {
+          file = vim.fn.fnamemodify(file, ":p"),
+          start_line = tonumber(start_line),
+          end_line = tonumber(end_line),
+          score = score,
+        })
+      end
+    end
+  end
+
+  return items
+end
+
+local function open_mgrep_results(query, items)
+  if #items == 0 then
+    vim.notify("mgrep não encontrou resultados", vim.log.levels.INFO)
+    return
+  end
+
+  local qf_items = {}
+  for _, item in ipairs(items) do
+    table.insert(qf_items, {
+      filename = item.file,
+      lnum = item.start_line,
+      col = 1,
+      text = string.format("%d-%d (%s%%)", item.start_line, item.end_line, item.score or "?"),
+    })
+  end
+  vim.fn.setqflist({}, " ", { title = "mgrep: " .. query, items = qf_items })
+
+  vim.ui.select(items, {
+    prompt = "mgrep resultados",
+    format_item = function(item)
+      return string.format("%s:%d-%d (%s%%)", item.file, item.start_line, item.end_line, item.score or "?")
+    end,
+  }, function(choice)
+    if not choice then
+      return
+    end
+    vim.cmd("edit " .. vim.fn.fnameescape(choice.file))
+    vim.api.nvim_win_set_cursor(0, { choice.start_line, 0 })
+  end)
+end
+
+local function run_mgrep(query, path)
+  if query == "" then
+    return
+  end
+
+  vim.notify("mgrep: buscando...", vim.log.levels.INFO, { title = "mgrep", timeout = 800 })
+  local items = parse_mgrep_results(query, path)
+
+  if #items > 0 then
+    vim.notify(string.format("mgrep: %d resultados", #items), vim.log.levels.INFO, { title = "mgrep", timeout = 1500 })
+  end
+
+  open_mgrep_results(query, items)
+end
+
 map("n", "<leader>sg", function()
   local query = vim.fn.input("mgrep: ")
-  if query ~= "" then
-    vim.cmd("terminal mgrep " .. vim.fn.shellescape(query))
-  end
+  run_mgrep(query)
 end, { desc = "🔍 Semantic Grep (mgrep)" })
 
 map("n", "<leader>sG", function()
   local query = vim.fn.input("mgrep: ")
   local path = vim.fn.input("Path (default: .): ")
-  if query ~= "" then
-    local cmd = "terminal mgrep " .. vim.fn.shellescape(query)
-    if path ~= "" then
-      cmd = cmd .. " " .. vim.fn.shellescape(path)
-    end
-    vim.cmd(cmd)
-  end
+  run_mgrep(query, path)
 end, { desc = "🔍 Semantic Grep with Path" })
+
+map("n", "<C-f>", function()
+  local query = vim.fn.input("mgrep: ")
+  run_mgrep(query)
+end, { desc = "🔍 mgrep rápido" })
 
 -- EDIT OPERATIONS - Operações de edição e manipulação de texto
 map("v", "<C-c>", '"+y', { desc = "📋 Copy" })
