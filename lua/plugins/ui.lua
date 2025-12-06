@@ -1,82 +1,23 @@
 return {
-  -- Colorscheme
-  {
-    "catppuccin/nvim",
-    name = "catppuccin",
-    priority = 1000,
-    opts = {
-      flavour = "mocha", -- latte, frappe, macchiato, mocha
-      background = {
-        light = "latte",
-        dark = "mocha",
-      },
-      transparent_background = false,
-      show_end_of_buffer = false,
-      term_colors = true,
-      dim_inactive = {
-        enabled = false,
-        shade = "dark",
-        percentage = 0.15,
-      },
-      no_italic = false,
-      no_bold = false,
-      no_underline = false,
-      styles = {
-        comments = { "italic" },
-        conditionals = { "italic" },
-        loops = {},
-        functions = {},
-        keywords = {},
-        strings = {},
-        variables = {},
-        numbers = {},
-        booleans = {},
-        properties = {},
-        types = {},
-        operators = {},
-      },
-      integrations = {
-        cmp = true,
-        gitsigns = true,
-        nvimtree = true,
-        treesitter = true,
-        notify = false,
-        mini = true,
-        telescope = {
-          enabled = true,
-          style = "nvchad",
-        },
-        which_key = true,
-        mason = true,
-        neotree = true,
-        noice = true,
-        native_lsp = {
-          enabled = true,
-          virtual_text = {
-            errors = { "italic" },
-            hints = { "italic" },
-            warnings = { "italic" },
-            information = { "italic" },
-          },
-          underlines = {
-            errors = { "underline" },
-            hints = { "underline" },
-            warnings = { "underline" },
-            information = { "underline" },
-          },
-          inlay_hints = {
-            background = true,
-          },
-        },
-      },
-    },
-  },
+  -- Custom Cursor Dark colorscheme (inspired by Cursor IDE)
+  -- The theme is defined in lua/config/colors/cursor-dark.lua
+  -- and colors/cursor-dark.lua
 
-  -- Configure LazyVim to load catppuccin
+  -- Configure LazyVim to load cursor-dark
   {
     "LazyVim/LazyVim",
     opts = {
-      colorscheme = "catppuccin",
+      colorscheme = "cursor-dark",
+    },
+  },
+
+  -- Keep catppuccin as fallback/alternative
+  {
+    "catppuccin/nvim",
+    name = "catppuccin",
+    lazy = true,
+    opts = {
+      flavour = "mocha",
     },
   },
 
@@ -192,21 +133,10 @@ return {
     end,
   },
 
-  -- Notifications
+  -- Notifications (disabled in favor of Noice)
   {
     "rcarriga/nvim-notify",
-    opts = {
-      timeout = 3000,
-      max_height = function()
-        return math.floor(vim.o.lines * 0.75)
-      end,
-      max_width = function()
-        return math.floor(vim.o.columns * 0.75)
-      end,
-      on_open = function(win)
-        vim.api.nvim_win_set_config(win, { zindex = 100 })
-      end,
-    },
+    enabled = false,
   },
 
   -- Status line

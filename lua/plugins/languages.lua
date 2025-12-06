@@ -29,6 +29,82 @@ return {
   -- Python support
   { import = "lazyvim.plugins.extras.lang.python" },
 
+  -- Python LSP configuration for venv detection
+  {
+    "neovim/nvim-lspconfig",
+    opts = {
+      servers = {
+        basedpyright = {
+          settings = {
+            basedpyright = {
+              analysis = {
+                autoSearchPaths = true,
+                diagnosticMode = "openFilesOnly",
+                useLibraryCodeForTypes = true,
+                typeCheckingMode = "basic",
+                -- Procura venv automaticamente
+                venvPath = ".",
+                venv = "venv",
+              },
+            },
+          },
+          before_init = function(_, config)
+            -- Detecta venv automaticamente no diretório do projeto
+            local venv_paths = {
+              "venv/bin/python",
+              ".venv/bin/python",
+              "source/venv/bin/python",
+              vim.fn.getcwd() .. "/venv/bin/python",
+              vim.fn.getcwd() .. "/.venv/bin/python",
+              vim.fn.getcwd() .. "/source/venv/bin/python",
+            }
+            
+            for _, venv_path in ipairs(venv_paths) do
+              local python_path = vim.fn.expand(venv_path)
+              if vim.fn.filereadable(python_path) == 1 then
+                config.settings.python = config.settings.python or {}
+                config.settings.python.pythonPath = python_path
+                break
+              end
+            end
+          end,
+        },
+        pyright = {
+          settings = {
+            python = {
+              analysis = {
+                autoSearchPaths = true,
+                diagnosticMode = "openFilesOnly",
+                useLibraryCodeForTypes = true,
+                typeCheckingMode = "basic",
+              },
+            },
+          },
+          before_init = function(_, config)
+            -- Detecta venv automaticamente no diretório do projeto
+            local venv_paths = {
+              "venv/bin/python",
+              ".venv/bin/python",
+              "source/venv/bin/python",
+              vim.fn.getcwd() .. "/venv/bin/python",
+              vim.fn.getcwd() .. "/.venv/bin/python",
+              vim.fn.getcwd() .. "/source/venv/bin/python",
+            }
+            
+            for _, venv_path in ipairs(venv_paths) do
+              local python_path = vim.fn.expand(venv_path)
+              if vim.fn.filereadable(python_path) == 1 then
+                config.settings.python = config.settings.python or {}
+                config.settings.python.pythonPath = python_path
+                break
+              end
+            end
+          end,
+        },
+      },
+    },
+  },
+
   -- Tailwind CSS support (removido temporariamente - extras mudaram)
   -- { import = "lazyvim.plugins.extras.lsp.tailwindcss" },
 
