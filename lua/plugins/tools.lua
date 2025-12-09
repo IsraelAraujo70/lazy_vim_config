@@ -78,7 +78,7 @@ return {
   {
     "akinsho/toggleterm.nvim",
     version = "*",
-    cmd = "ToggleTerm",
+    cmd = { "ToggleTerm", "TermExec", "T" },
     keys = {
       { "<C-/>", "<cmd>ToggleTerm<cr>", desc = "Toggle terminal" },
       { "<leader>tf", "<cmd>ToggleTerm direction=float<cr>", desc = "Float terminal" },
@@ -111,9 +111,22 @@ return {
         },
       },
     },
+    config = function(_, opts)
+      require("toggleterm").setup(opts)
+
+      vim.api.nvim_create_user_command("T", function(cmd_opts)
+        if cmd_opts.args == "" then
+          vim.notify("Forneça um comando para executar", vim.log.levels.WARN)
+          return
+        end
+
+        vim.cmd("TermExec direction=float cmd=" .. vim.fn.shellescape(cmd_opts.args))
+      end, { nargs = "+", desc = "Executar comando em terminal flutuante (ToggleTerm)", complete = "shellcmd" })
+    end,
   },
 
   -- Git integration
+
   {
     "kdheepak/lazygit.nvim",
     cmd = {

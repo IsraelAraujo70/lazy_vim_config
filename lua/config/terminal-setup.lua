@@ -1,6 +1,44 @@
 -- Script para ajudar na configuração do terminal
 local M = {}
 
+local command_terminal
+
+local function get_toggleterm()
+  local ok, term = pcall(require, "toggleterm.terminal")
+  if not ok then
+    vim.notify("toggleterm.nvim não está disponível", vim.log.levels.ERROR)
+    return nil
+  end
+  return term
+end
+
+local function get_command_terminal(term_module)
+  if not command_terminal then
+    command_terminal = term_module.Terminal:new({
+      direction = "float",
+      close_on_exit = false,
+      hidden = true,
+    })
+  end
+  return command_terminal
+end
+
+function M.run_in_terminal(opts)
+  local term_module = get_toggleterm()
+  if not term_module then
+    return
+  end
+
+  if opts.args == "" then
+    vim.notify("Use :T <comando> para executar no terminal", vim.log.levels.WARN)
+    return
+  end
+
+  local term = get_command_terminal(term_module)
+  term:open()
+  term:send(opts.args .. "\n", false)
+end
+
 function M.show_font_instructions()
   print("\n🎨 Como configurar fontes no seu terminal:")
   
@@ -55,6 +93,23 @@ end
 
 -- Criar comandos do Neovim
 function M.setup_commands()
+  -- Comando :T para executar comandos no terminal
+  vim.api.nvim_create_user_command('T', function(opts)
+    local cmd = opts.args
+    if cmd == "" then
+      local term_module = get_toggleterm()
+      if term_module then
+        local term = term_module.Terminal:new({
+          direction = "float",
+          close_on_exit = true,
+        })
+        term:toggle()
+      end
+    else
+      M.run_in_terminal(opts)
+    end
+  end, { nargs = '*', desc = 'Executar comando no terminal' })
+
   vim.api.nvim_create_user_command('NerdFontsInstall', function()
     require('config.nerd-fonts').setup()
   end, { desc = 'Instalar Nerd Fonts' })

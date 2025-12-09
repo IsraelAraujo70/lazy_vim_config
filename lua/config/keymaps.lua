@@ -244,7 +244,7 @@ local function show_cheat_sheet()
     "  Ctrl+V  Selecao bloco   |    Ctrl+/  Comentar",
     "",
     "TEXT OBJECTS (usar com d/c/y)",
-    "  ciw     Change inner word    ci\"     Change inner quotes",
+    '  ciw     Change inner word    ci"     Change inner quotes',
     "  di(     Delete inner ()  |    da{     Delete around {}",
     "  yip     Yank inner paragraph",
     "",
