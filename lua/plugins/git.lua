@@ -96,6 +96,34 @@ return {
     },
   },
 
+  -- Diffview: PR-style diffs across files
+  {
+    "sindrets/diffview.nvim",
+    cmd = {
+      "DiffviewOpen",
+      "DiffviewFileHistory",
+      "DiffviewClose",
+      "DiffviewToggleFiles",
+      "DiffviewFocusFiles",
+      "DiffviewRefresh",
+    },
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      "nvim-tree/nvim-web-devicons",
+    },
+    keys = {
+      { "<leader>gD", "<cmd>DiffviewOpen<cr>", desc = "Diffview Open" },
+      { "<leader>gH", "<cmd>DiffviewFileHistory %<cr>", desc = "Diffview File History" },
+    },
+    opts = {
+      view = {
+        default = {
+          layout = "diff2_horizontal",
+        },
+      },
+    },
+  },
+
   -- Git conflict resolution
   {
     "akinsho/git-conflict.nvim",
@@ -137,7 +165,7 @@ return {
         reaction_viewer_hint_icon = "",
         user_icon = " ",
         timeline_marker = "",
-        timeline_indent = "2",
+        timeline_indent = 2,
         right_bubble_delimiter = "",
         left_bubble_delimiter = "",
         github_hostname = "",
