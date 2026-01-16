@@ -3,7 +3,7 @@
 -- Add any additional keymaps here
 
 -- ============================================================================
--- Atalhos estilo Windows/VSCode
+-- Atalhos estilo VSCode
 -- ============================================================================
 
 -- Ctrl+C - Copiar para clipboard
