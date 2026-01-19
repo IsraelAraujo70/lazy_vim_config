@@ -43,3 +43,10 @@ vim.keymap.set("n", "<leader>gd", function() open_lumen_tmux("lumen diff") end, 
 vim.keymap.set("n", "<leader>gD", function() open_lumen_tmux("lumen diff HEAD~1") end, { desc = "Lumen Diff vs Last Commit" })
 vim.keymap.set("n", "<leader>gw", function() open_lumen_tmux("lumen diff --watch") end, { desc = "Lumen Diff (Watch)" })
 vim.keymap.set("n", "<leader>gs", function() open_lumen_tmux("lumen diff --stacked") end, { desc = "Lumen Diff (Stacked)" })
+vim.keymap.set("n", "<leader>gp", function()
+  vim.ui.input({ prompt = "PR (numero ou URL): " }, function(input)
+    if input and input ~= "" then
+      open_lumen_tmux("lumen diff --pr " .. input)
+    end
+  end)
+end, { desc = "Lumen Diff PR" })
