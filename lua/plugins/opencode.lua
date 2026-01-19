@@ -11,6 +11,7 @@ return {
       { "<leader>oa", function() require("opencode").ask("@this: ", { submit = true }) end, desc = "Ask OpenCode", mode = { "n", "x" } },
       { "<leader>os", function() require("opencode").select() end, desc = "Select action", mode = { "n", "x" } },
       { "<leader>ol", function() require("opencode").operator("@this ") end, desc = "Add line to OpenCode", expr = true },
+      { "<leader>oA", function() require("opencode").prompt("lumen_annotations") end, desc = "Explicar anotacoes Lumen" },
       -- Ctrl+. para toggle rapido
       { "<C-.>", function() require("opencode").toggle() end, desc = "Toggle OpenCode", mode = { "n", "t" } },
     },
@@ -20,6 +21,26 @@ return {
         provider = {
           enabled = "tmux",
           tmux = {},
+        },
+        contexts = {
+          ["@lumen_annotations"] = function()
+            local path = vim.fn.input("Arquivo de anotacoes Lumen: ", "", "file")
+            if path == "" then
+              return nil
+            end
+            local ok, lines = pcall(vim.fn.readfile, path)
+            if not ok then
+              vim.notify("Nao foi possivel ler: " .. path, vim.log.levels.ERROR)
+              return nil
+            end
+            return table.concat(lines, "\n")
+          end,
+        },
+        prompts = {
+          lumen_annotations = {
+            prompt = "Explique estas anotacoes de code review do Lumen:\n@lumen_annotations",
+            submit = true,
+          },
         },
       }
 
