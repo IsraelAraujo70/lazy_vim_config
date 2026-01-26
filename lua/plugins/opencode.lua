@@ -7,7 +7,7 @@ return {
     },
     keys = {
       -- Leader keymaps (aparecem no which-key)
-      { "<leader>oo", function() require("opencode").toggle() end, desc = "Toggle OpenCode" },
+      { "<leader>oo", function() require("opencode").choose_backend() end, desc = "Toggle OpenCode" },
       { "<leader>oa", function() require("opencode").ask("@this: ", { submit = true }) end, desc = "Ask OpenCode", mode = { "n", "x" } },
       { "<leader>os", function() require("opencode").select() end, desc = "Select action", mode = { "n", "x" } },
       { "<leader>oL", function() require("opencode").operator("@this ") end, desc = "Add line to OpenCode", expr = true },
@@ -33,6 +33,15 @@ return {
         end
         local code, stdout = system({ "lsof", "-iTCP:" .. tostring(port), "-sTCP:LISTEN", "-P", "-n" })
         return code == 0 and stdout ~= ""
+      end
+
+      local function pick_tmux_port()
+        for port = 4097, 4107 do
+          if not is_port_listening(port) then
+            return port
+          end
+        end
+        return 4097
       end
 
       local function resolve_desktop_cmd()
@@ -122,8 +131,56 @@ return {
         return pids
       end
 
+      local function rebuild_provider(provider_name)
+        local config = require("opencode.config")
+        if not provider_name then
+          config.provider = nil
+          return
+        end
+
+        local provider_opts = config.opts.provider or {}
+        provider_opts.enabled = provider_name
+
+        local ok, provider_mod = pcall(require, "opencode.provider." .. provider_name)
+        if not ok then
+          vim.notify("Falha ao carregar provider '" .. provider_name .. "': " .. provider_mod, vim.log.levels.ERROR)
+          config.provider = nil
+          return
+        end
+
+        local resolved_provider_opts = provider_opts[provider_name]
+        local provider = provider_mod.new(resolved_provider_opts)
+        provider.cmd = provider.cmd or provider_opts.cmd
+
+        local port = config.opts.port
+        if port and provider.cmd then
+          provider.cmd = provider.cmd:gsub("--port ?", "") .. " --port " .. tostring(port)
+        end
+
+        config.provider = provider
+      end
+
+      local function set_mode_desktop()
+        local config = require("opencode.config")
+        config.opts.port = 4096
+        if config.opts.provider then
+          config.opts.provider.enabled = false
+        end
+        rebuild_provider(nil)
+      end
+
+      local function set_mode_tmux()
+        local config = require("opencode.config")
+        config.opts.port = pick_tmux_port()
+        if config.opts.provider then
+          config.opts.provider.enabled = "tmux"
+        end
+        rebuild_provider("tmux")
+      end
+
       local function open_desktop_and_server()
         local port = 4096
+        set_mode_desktop()
         local desktop_ok = start_desktop()
         local server_ok = start_server(port)
         require("opencode.config").opts.port = port
@@ -133,6 +190,36 @@ return {
             vim.log.levels.INFO
           )
         end
+      end
+
+      local function open_tmux()
+        set_mode_tmux()
+        local ok, err = pcall(require("opencode.provider").start)
+        if not ok then
+          vim.notify(err, vim.log.levels.ERROR, { title = "opencode" })
+        end
+      end
+
+      local function choose_backend()
+        local items = {
+          { label = "Desktop (API 4096)", value = "desktop" },
+          { label = "Terminal (tmux)", value = "tmux" },
+        }
+        vim.ui.select(items, {
+          prompt = "OpenCode",
+          format_item = function(item)
+            return item.label
+          end,
+        }, function(choice)
+          if not choice then
+            return
+          end
+          if choice.value == "desktop" then
+            open_desktop_and_server()
+          else
+            open_tmux()
+          end
+        end)
       end
 
       local function list_and_kill_servers()
@@ -193,6 +280,9 @@ return {
       local current_model = nil
       local function current_model_label()
         if not current_model then
+          return nil
+        end
+        if require("opencode.config").opts.port ~= 4096 then
           return nil
         end
         return string.format("%s/%s", current_model.providerID, current_model.modelID)
@@ -324,6 +414,7 @@ return {
       opencode.open_desktop_and_server = open_desktop_and_server
       opencode.list_opencode_servers = list_and_kill_servers
       opencode.pick_model = pick_model
+      opencode.choose_backend = choose_backend
 
       local original_statusline = opencode.statusline
       opencode.statusline = function()
@@ -339,9 +430,10 @@ return {
 
       ---@type opencode.Opts
       vim.g.opencode_opts = {
-        port = 4096,
+        port = nil,
         provider = {
-          enabled = nil,
+          enabled = "tmux",
+          tmux = {},
         },
         prompts = {},
       }
